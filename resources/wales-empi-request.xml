@@ -1,0 +1,91 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:mpi="http://apps.wales.nhs.uk/mpi/" xmlns="urn:hl7-org:v2xml">
+<soapenv:Header/>
+<soapenv:Body>
+   <mpi:InvokePatientDemographicsQuery>
+
+	  <QBP_Q21>
+
+		 <MSH>
+			 <!--Field Separator -->
+			<MSH.1>|</MSH.1>
+			<!-- Encoding Characters -->
+			<MSH.2>^~\&amp;</MSH.2>
+			<!-- Sending Application -->
+			<MSH.3 >
+			   <HD.1>{{sending-application}}</HD.1>
+			</MSH.3>
+			<!-- Sending Facility -->
+			<MSH.4 >
+			   <HD.1>{{sending-facility}}</HD.1>
+			</MSH.4>
+			<!-- Receiving Application -->
+			<MSH.5>
+			   <HD.1>{{receiving-application}}</HD.1>
+			</MSH.5>
+			<!-- Receiving Application -->
+			<MSH.6>
+			   <HD.1>{{receiving-facility}}</HD.1>
+			</MSH.6>
+			<!-- Date / Time of message YYYYMMDDHHMMSS -->
+			<MSH.7>
+			   <TS.1>{{date-time}}</TS.1>
+			</MSH.7>
+			<!-- Message Type -->
+			<MSH.9>
+			   <MSG.1 >QBP</MSG.1>
+			   <MSG.2 >Q22</MSG.2>
+			   <MSG.3 >QBP_Q21</MSG.3>
+			</MSH.9>
+			<!-- Message Control ID -->
+			<MSH.10>{{message-control-id}}</MSH.10>
+			<MSH.11>
+			   <PT.1 >{{processing-id}}</PT.1>
+			</MSH.11>
+			<!-- Version Id -->
+			<MSH.12>
+			   <VID.1 >2.5</VID.1>
+			</MSH.12>
+			<!-- Country Code -->
+			<MSH.17 >GBR</MSH.17>
+		 </MSH>
+
+		 <QPD>
+			<QPD.1 >
+			   <!--Message Query Name :-->
+			   <CE.1>IHE PDQ Query</CE.1>
+			</QPD.1>
+			<!--Query Tag:-->
+			<QPD.2>PatientQuery</QPD.2>
+		  <!--Demographic Fields:-->
+			<!--Zero or more repetitions:-->
+			<QPD.3>
+			   <!--PID.3 - Patient Identifier List:-->
+			   <QIP.1>@PID.3.1</QIP.1>
+			   <QIP.2>{{identifier}}</QIP.2>
+			</QPD.3>
+			<QPD.3>
+			   <!--PID.3 - Patient Identifier List:-->
+			   <QIP.1>@PID.3.4</QIP.1>
+			   <QIP.2>{{authority}}</QIP.2>
+			</QPD.3>
+			<QPD.3>
+			   <!--PID.3 - Patient Identifier List:-->
+			   <QIP.1>@PID.3.5</QIP.1>
+			   <QIP.2>{{authority-type}}</QIP.2>
+			</QPD.3>
+		 </QPD>
+
+		 <RCP>
+			<!--Query Priority:-->
+			<RCP.1 >I</RCP.1>
+			<!--Quantity Limited Request:-->
+			<RCP.2 >
+			   <CQ.1>50</CQ.1>
+			</RCP.2>
+
+		 </RCP>
+
+	  </QBP_Q21>
+   </mpi:InvokePatientDemographicsQuery>
+</soapenv:Body>
+</soapenv:Envelope>
