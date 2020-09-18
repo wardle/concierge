@@ -23,8 +23,8 @@
                        :sending-facility 221
                        :receiving-application 100
                        :receiving-facility 100
-                       :date-time "20200916020202"
-                       :message-control-id "uuid-to-be-made"
+                       :date-time (.format (java.text.SimpleDateFormat. "yyyyMMddHHmmss") (java.util.Date.))
+                       :message-control-id (java.util.UUID/randomUUID)
                        :processing-id "T"   ;  P or U or T 
                        :identifier "1234567890"
                        :authority "NHS"  ;; empi organisation code
