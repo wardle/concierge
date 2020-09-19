@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <InvokePatientDemographicsQueryResponse xmlns="http://apps.wales.nhs.uk/mpi/">
+      <a:RSP_K21 xmlns:a="urn:hl7-org:v2xml">
+        <a:MSH>
+          <a:MSH.1 Item="1" Type="ST" LongName="Field Separator">|</a:MSH.1>
+          <a:MSH.2 Item="2" Type="ST" LongName="Encoding Characters">^~\&amp;</a:MSH.2>
+          <a:MSH.3 Item="3" Type="HD" Table="HL70361" LongName="Sending Application">
+            <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">100</a:HD.1>
+          </a:MSH.3>
+          <a:MSH.4 Item="4" Type="HD" Table="HL70362" LongName="Sending Facility">
+            <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">100</a:HD.1>
+          </a:MSH.4>
+          <a:MSH.5 Item="5" Type="HD" Table="HL70361" LongName="Receiving Application">
+            <a:HD.1 Type="
+IS" Table="HL70300" LongName="Namespace ID">221</a:HD.1>
+          </a:MSH.5>
+          <a:MSH.6 Item="6" Type="HD" Table="HL70362" LongName="Receiving Facility">
+            <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">221</a:HD.1>
+          </a:MSH.6>
+          <a:MSH.7 Item="7" Type="TS" LongName="Date/Time Of Message">
+            <a:TS.1 Type="DTM" LongName="Time">20200919153606</a:TS.1>
+          </a:MSH.7>
+          <a:MSH.9 Item="9" Type="MSG" LongName="Message Type">
+            <a:MSG.1 Type="ID" Table="HL70076" LongName="Message Code">RSP</a:MSG.1>
+            <a:MSG.2 Type="ID" Table="HL70003" LongName="Trigger Event">K22</a:MSG.2>
+            <a:MSG.3 Type="ID" Table="HL70354" LongName="Message Structure">RSP_K22</a:MSG.3>
+          </a:MSH.9>
+          <a:MSH.10 Item="10" Type="ST" LongName="Message Control ID">41</a:MSH.10>
+          <a:MSH.11 Item="11" Type="PT" LongName="Processing ID">
+            <a:PT.1 Type="ID" Table="HL70103" LongName="Processing ID">P</a:PT.1>
+          </
+a:MSH.11>
+          <a:MSH.12 Item="12" Type="VID" LongName="Version ID">
+            <a:VID.1 Type="ID" Table="HL70104" LongName="Version ID">2.5</a:VID.1>
+          </a:MSH.12>
+          <a:MSH.17 Item="17" Type="ID" Table="HL70399" LongName="Country Code">GBR</a:MSH.17>
+          <a:MSH.19 Item="693" Type="CE" LongName="Principal Language Of Message">
+            <a:CE.1 Type="ST" LongName="Identifier">EN</a:CE.1>
+          </a:MSH.19>
+        </a:MSH>
+        <a:MSA>
+          <a:MSA.1 Item="18" Type="ID" Table="HL70008" LongName="Acknowledgment Code">AA</a:MSA.1>
+          <a:MSA.2 Item="10" Type="ST" LongName="Message Control ID">e2e09e41-7b59-4045-9516-f7eb7ad8159c</a:MSA.2>
+        </a:MSA>
+        <a:QAK>
+          <a:QAK.1 Item="696" Type="ST" LongName="Query Tag">PatientQuery</a:QAK.1>
+          <a:QAK.2 Item="708" Type="ID" Table="HL70208" LongName="Query Response Status">OK</a:QAK.2>
+        </a:QAK>
+        <a:QPD>
+          <a:QPD.1 Item="1375" Type="CE" Table="HL70471" LongName="Message Query 
+Name">
+            <a:CE.1 Type="ST" LongName="Identifier">IHE PDQ Query</a:CE.1>
+          </a:QPD.1>
+          <a:QPD.2 Item="696" Type="ST" LongName="Query Tag">PatientQuery</a:QPD.2>
+          <a:QPD.3 Item="1435" Type="QIP" LongName="User Parameters (in successive fields)">
+            <a:QIP.1 Type="ST" LongName="ID Number">@PID.3.1</a:QIP.1>
+            <a:QIP.2 Type="ST" LongName="Check Digit">1234567890</a:QIP.2>
+          </a:QPD.3>
+          <a:QPD.3 Item="1435" Type="QIP" LongName="User Parameters (in successive fields)">
+            <a:QIP.1 Type="ST" LongName="ID Number">@PID.3.4</a:QIP.1>
+            <a:QIP.2 Type="ST" LongName="Check Digit">https://fhir.nhs.uk/Id/nhs-number</a:QIP.2>
+          </a:QPD.3>
+          <a:QPD.3 Item="1435" Type="QIP" LongName="User Parameters (in successive fields)">
+            <a:QIP.1 Type="ST" LongName="ID Number">@PID.3.5</a:QIP.1>
+            <a:QIP.2 Type="ST" LongName="Check Digit">NH</a:QIP.2>
+          </a:QPD.3>
+        </a:QPD>
+        <a:RSP_K21.QUERY_
+RESPONSE>
+          <a:PID>
+            <a:PID.1 Item="104" Type="SI" LongName="Set ID - PID">001</a:PID.1>
+            <a:PID.3 Item="106" Type="CX" LongName="Patient Identifier List">
+              <a:CX.1 Type="ST" LongName="ID Number">5729874</a:CX.1>
+              <a:CX.4 Type="HD" Table="HL70363" LongName="Assigning Authority">
+                <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">100</a:HD.1>
+              </a:CX.4>
+              <a:CX.5 Type="ID" Table="HL70203" LongName="Identifier Type Code">PE</a:CX.5>
+            </a:PID.3>
+            <a:PID.3 Item="106" Type="CX" LongName="Patient Identifier List">
+              <a:CX.1 Type="ST" LongName="ID Number">C6247237</a:CX.1>
+              <a:CX.4 Type="HD" Table="HL70363" LongName="Assigning Authority">
+                <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">149</a:HD.1>
+              </a:CX.4>
+              <a:CX.5 Type="ID" Table="HL70203" LongName="Identifier Type Code">PI</a:CX.5>
+            </a:PID.3>
+       
+     <a:PID.3 Item="106" Type="CX" LongName="Patient Identifier List">
+              <a:CX.1 Type="ST" LongName="ID Number">P1120621</a:CX.1>
+              <a:CX.4 Type="HD" Table="HL70363" LongName="Assigning Authority">
+                <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">170</a:HD.1>
+              </a:CX.4>
+              <a:CX.5 Type="ID" Table="HL70203" LongName="Identifier Type Code">PI</a:CX.5>
+            </a:PID.3>
+            <a:PID.3 Item="106" Type="CX" LongName="Patient Identifier List">
+              <a:CX.1 Type="ST" LongName="ID Number">400185866</a:CX.1>
+              <a:CX.4 Type="HD" Table="HL70363" LongName="Assigning Authority">
+                <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">154</a:HD.1>
+              </a:CX.4>
+              <a:CX.5 Type="ID" Table="HL70203" LongName="Identifier Type Code">PI</a:CX.5>
+            </a:PID.3>
+            <a:PID.3 Item="106" Type="CX" LongName="Patient Identifier List">
+              <a:CX.1 Type="ST" LongName="
+ID Number">UNIT1234</a:CX.1>
+              <a:CX.4 Type="HD" Table="HL70363" LongName="Assigning Authority">
+                <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">108</a:HD.1>
+              </a:CX.4>
+              <a:CX.5 Type="ID" Table="HL70203" LongName="Identifier Type Code">PI</a:CX.5>
+            </a:PID.3>
+            <a:PID.3 Item="106" Type="CX" LongName="Patient Identifier List">
+              <a:CX.1 Type="ST" LongName="ID Number">1234567890</a:CX.1>
+              <a:CX.4 Type="HD" Table="HL70363" LongName="Assigning Authority">
+                <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">NHS</a:HD.1>
+              </a:CX.4>
+              <a:CX.5 Type="ID" Table="HL70203" LongName="Identifier Type Code">NH</a:CX.5>
+            </a:PID.3>
+            <a:PID.5 Item="108" Type="XPN" LongName="Patient Name">
+              <a:XPN.1 Type="FN" LongName="Family Name">
+                <a:FN.1 Type="ST" LongName="Surname">TESTING</a:FN.1>
+              </a:XPN.1>
+            
+  <a:XPN.2 Type="ST" LongName="Given Name">TESTING</a:XPN.2>
+              <a:XPN.5 Type="ST" LongName="Prefix (e.g., DR)">Ms.</a:XPN.5>
+              <a:XPN.7 Type="ID" Table="HL70200" LongName="Name Type Code">U</a:XPN.7>
+            </a:PID.5>
+            <a:PID.7 Item="110" Type="TS" LongName="Date/Time of Birth">
+              <a:TS.1 Type="DTM" LongName="Time">19861219000000</a:TS.1>
+            </a:PID.7>
+            <a:PID.8 Item="111" Type="IS" Table="HL70001" LongName="Administrative Sex">M</a:PID.8>
+            <a:PID.9 Item="112" Type="XPN" LongName="Patient Alias">
+              <a:XPN.7 Type="ID" Table="HL70200" LongName="Name Type Code">A</a:XPN.7>
+            </a:PID.9>
+            <a:PID.11 Item="114" Type="XAD" LongName="Patient Address">
+              <a:XAD.1 Type="SAD" LongName="Street Address">
+                <a:SAD.1 Type="ST" LongName="Street or Mailing Address">Pembrokeshire &amp; Derwen Nhs</a:SAD.1>
+              </a:XAD.1>
+              <a:XAD.2 Type="ST" LongName="Other Designati
+on">Cwm Seren</a:XAD.2>
+              <a:XAD.3 Type="ST" LongName="City">Job's Well Road</a:XAD.3>
+              <a:XAD.4 Type="ST" LongName="State or Province">Carmarthen, Carmarthenshire</a:XAD.4>
+              <a:XAD.5 Type="ST" LongName="Zip or Postal Code">SA31 3BB</a:XAD.5>
+              <a:XAD.7 Type="ID" Table="HL70190" LongName="Address Type">H</a:XAD.7>
+            </a:PID.11>
+            <a:PID.13 Item="116" Type="XTN" LongName="Phone Number - Home">
+              <a:XTN.1 Type="ST" LongName="Telephone Number">Job's Well Road</a:XTN.1>
+              <a:XTN.2 Type="ID" Table="HL70201" LongName="Telecommunication Use Code">PRN</a:XTN.2>
+            </a:PID.13>
+            <a:PID.13 Item="116" Type="XTN" LongName="Phone Number - Home">
+              <a:XTN.2 Type="ID" Table="HL70201" LongName="Telecommunication Use Code">PRS</a:XTN.2>
+            </a:PID.13>
+            <a:PID.14 Item="117" Type="XTN" LongName="Phone Number - Business">
+              <a:XTN.1 Type="ST" LongName="Telephone Number">0207
+ 123 4567</a:XTN.1>
+              <a:XTN.2 Type="ID" Table="HL70201" LongName="Telecommunication Use Code">WPN</a:XTN.2>
+            </a:PID.14>
+            <a:PID.16 Item="119" Type="CE" Table="HL70002" LongName="Marital Status">
+              <a:CE.1 Type="ST" LongName="Identifier">9</a:CE.1>
+            </a:PID.16>
+            <a:PID.17 Item="120" Type="CE" Table="HL70006" LongName="Religion">
+              <a:CE.1 Type="ST" LongName="Identifier">VAR</a:CE.1>
+            </a:PID.17>
+            <a:PID.22 Item="125" Type="CE" Table="HL70189" LongName="Ethnic Group">
+              <a:CE.1 Type="ST" LongName="Identifier">Z</a:CE.1>
+            </a:PID.22>
+            <a:PID.28 Item="739" Type="CE" Table="HL70212" LongName="Nationality">
+              <a:CE.1 Type="ST" LongName="Identifier">8</a:CE.1>
+            </a:PID.28>
+            <a:PID.32 Item="1536" Type="IS" Table="HL70445" LongName="Identity Reliability Code">05</a:PID.32>
+          </a:PID>
+          <a:PD1>
+            <a:PD1.3 Item="756" Type="XO
+N" LongName="Patient Primary Facility">
+              <a:XON.3 Type="NM" LongName="ID Number">V8199900</a:XON.3>
+            </a:PD1.3>
+            <a:PD1.4 Item="757" Type="XCN" LongName="Patient Primary Care Provider Name &amp; ID No.">
+              <a:XCN.1 Type="ST" LongName="ID Number">G8640097</a:XCN.1>
+            </a:PD1.4>
+          </a:PD1>
+        </a:RSP_K21.QUERY_RESPONSE>
+        <a:RSP_K21.QUERY_RESPONSE>
+          <a:PID>
+            <a:PID.1 Item="104" Type="SI" LongName="Set ID - PID">002</a:PID.1>
+            <a:PID.3 Item="106" Type="CX" LongName="Patient Identifier List">
+              <a:CX.1 Type="ST" LongName="ID Number">35824651</a:CX.1>
+              <a:CX.4 Type="HD" Table="HL70363" LongName="Assigning Authority">
+                <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">100</a:HD.1>
+              </a:CX.4>
+              <a:CX.5 Type="ID" Table="HL70203" LongName="Identifier Type Code">PE</a:CX.5>
+            </a:PID.3>
+            <a:PID.3 Item="106" Type="CX" Long
+Name="Patient Identifier List">
+              <a:CX.1 Type="ST" LongName="ID Number">B8100609</a:CX.1>
+              <a:CX.4 Type="HD" Table="HL70363" LongName="Assigning Authority">
+                <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">109</a:HD.1>
+              </a:CX.4>
+              <a:CX.5 Type="ID" Table="HL70203" LongName="Identifier Type Code">PI</a:CX.5>
+            </a:PID.3>
+            <a:PID.3 Item="106" Type="CX" LongName="Patient Identifier List">
+              <a:CX.1 Type="ST" LongName="ID Number">1234567890</a:CX.1>
+              <a:CX.4 Type="HD" Table="HL70363" LongName="Assigning Authority">
+                <a:HD.1 Type="IS" Table="HL70300" LongName="Namespace ID">NHS</a:HD.1>
+              </a:CX.4>
+              <a:CX.5 Type="ID" Table="HL70203" LongName="Identifier Type Code">NH</a:CX.5>
+            </a:PID.3>
+            <a:PID.5 Item="108" Type="XPN" LongName="Patient Name">
+              <a:XPN.1 Type="FN" LongName="Family Name">
+                <a:FN.1 Type="ST"
+ LongName="Surname">TESTERTON</a:FN.1>
+              </a:XPN.1>
+              <a:XPN.2 Type="ST" LongName="Given Name">TESTING</a:XPN.2>
+              <a:XPN.7 Type="ID" Table="HL70200" LongName="Name Type Code">U</a:XPN.7>
+            </a:PID.5>
+            <a:PID.7 Item="110" Type="TS" LongName="Date/Time of Birth">
+              <a:TS.1 Type="DTM" LongName="Time">19880717000000</a:TS.1>
+            </a:PID.7>
+            <a:PID.8 Item="111" Type="IS" Table="HL70001" LongName="Administrative Sex">M</a:PID.8>
+            <a:PID.11 Item="114" Type="XAD" LongName="Patient Address">
+              <a:XAD.1 Type="SAD" LongName="Street Address">
+                <a:SAD.1 Type="ST" LongName="Street or Mailing Address">46 County Road</a:SAD.1>
+              </a:XAD.1>
+              <a:XAD.2 Type="ST" LongName="Other Designation">Penygroes</a:XAD.2>
+              <a:XAD.3 Type="ST" LongName="City">Caernarfon</a:XAD.3>
+              <a:XAD.4 Type="ST" LongName="State or Province">Gwynedd</a:XAD.4>
+              <a:XAD.
+5 Type="ST" LongName="Zip or Postal Code">LL54 6EY</a:XAD.5>
+              <a:XAD.7 Type="ID" Table="HL70190" LongName="Address Type">H</a:XAD.7>
+            </a:PID.11>
+            <a:PID.16 Item="119" Type="CE" Table="HL70002" LongName="Marital Status">
+              <a:CE.1 Type="ST" LongName="Identifier">W</a:CE.1>
+            </a:PID.16>
+            <a:PID.17 Item="120" Type="CE" Table="HL70006" LongName="Religion">
+              <a:CE.1 Type="ST" LongName="Identifier">ORT</a:CE.1>
+            </a:PID.17>
+          </a:PID>
+          <a:PD1>
+            <a:PD1.3 Item="756" Type="XON" LongName="Patient Primary Facility">
+              <a:XON.3 Type="NM" LongName="ID Number">W96096</a:XON.3>
+            </a:PD1.3>
+            <a:PD1.4 Item="757" Type="XCN" LongName="Patient Primary Care Provider Name &amp; ID No.">
+              <a:XCN.1 Type="ST" LongName="ID Number">G8888886</a:XCN.1>
+            </a:PD1.4>
+          </a:PD1>
+        </a:RSP_K21.QUERY_RESPONSE>
+      </a:RSP_K21>
+    </InvokePatientDemog
+raphicsQueryResponse>
+  </soap:Body>
+</soap:Envelope>
