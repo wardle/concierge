@@ -21,20 +21,41 @@
 
 (def authorities
   {"https://fhir.nhs.uk/Id/nhs-number"
-   {:authority      "NHS"
-    :authority-type "NH"}
+   {:authority "NHS" :authority-type "NH"}
+
+   "https://fhir.wales.nhs.uk/Id/empi-number"               ;; TODO: need to check authority type for empi numbers
+   {:authority "100" :authority-type "PE"}
+
+   "https://fhir.swansea.wales.nhs.uk/Id/pas-identifier"
+   {:authority "108" :authority-type "PI"}
+
+   "https://fhir.betsicentral.wales.nhs.uk/Id/central/pas-identifier"
+   {:authority "109" :authority-type "PI"}
+
+   "https://fhir.betsimaelor.wales.nhs.uk/Id/pas-identifier"
+   {:authority "110" :authority-type "PI"}
+
+   "https://fhir.betsiwest.wales.nhs.uk/Id/pas-identifier"
+   {:authority "111" :authority-type "PI"}
+
+   "https://fhir.cwmtaf.wales.nhs.uk/Id/pas-identifier"
+   {:authority "126" :authority-type "PI"}
+
+   "https://fhir.aneurinbevan.nhs.uk/Id/pas-identifier"
+   {:authority "139" :authority-type "PI"}
 
    "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
-   {:authority      "140"
-    :authority-type "PI"
-    :ods            "RWMBV"}})
+   {:authority "140" :authority-type "PI" :ods "RWMBV"}
+
+   "https://fhir.hyweldda.wales.nhs.uk/Id/pas-identifier"
+   {:authority "149" :authority-type "PI"}
+
+   "https://fhir.powys.wales.nhs.uk/Id/pas-identifier"
+   {:authority "170" :authority-type "PI"}})
 
 (def ^:private authority->system
-  {"100" "https://fhir.wales.nhs.uk/Id/empi-number"
-   "NHS" "https://fhir.nhs.uk/Id/nhs-number"
-   "140" "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
-   "149" "https://fhir.hyweldda.wales.nhs.uk/Id/pas-identifier"
-   "170" "https://fhir.powys.wales.nhs.uk/Id/pas-identifier"})
+  (zipmap (map :authority (vals authorities)) (keys authorities)))
+
 
 (def ^:private sex->sex
   "The EMPI defines sex as one of M,F, O, U, A or N, as per vcard standard."
@@ -44,17 +65,21 @@
    "N" :none
    "U" :unknown})
 
+(def ^:private dtf
+  "An EMPI compatible DateTimeFormatter; immutable and thread safe."
+  (java.time.format.DateTimeFormatter/ofPattern "yyyyMMddHHmmss"))
+
 (def ^:private default-request
   {:sending-application   221
    :sending-facility      221
    :receiving-application 100
    :receiving-facility    100
-   :date-time             (.format (java.text.SimpleDateFormat. "yyyyMMddHHmmss") (java.util.Date.))
-   :message-control-id    (java.util.UUID/randomUUID)
-   :processing-id         "T"                               ;  P or U or T
+   ;; :processing-id         "T"                               ;  P or U or T
    ;; :identifier "1234567890"
    ;; :authority "NHS"  ;; empi organisation code
    ;; :authority-type  "NH"
+   :date-time             (.format dtf (java.time.LocalDateTime/now))
+   :message-control-id    (java.util.UUID/randomUUID)
    })
 
 (defn ^:private make-identifier-request
@@ -78,17 +103,14 @@
     (client/post (:url req) {:content-type "text/xml; charset=\"utf-8\""
                              :headers      {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
                              :body         (:xml req)
-                             :proxy-host "137.4.60.101"
-                             :proxy-port 8080})))
+                             :proxy-host   "137.4.60.101"
+                             :proxy-port   8080})))
 
-(def ^:private dtf
-  "An EMPI compatible DateTimeFormatter; immutable and thread safe."
-  (java.time.format.DateTimeFormatter/ofPattern "yyyyMMddHHmmss"))
 
 (defn- empi-date->map
   "Parse a date in format `yyyyMMddHHmmss` from string `s` into a map with the specified key `k`.
   For example, `(empi-date->map \"20200919121200\" :date-birth)`."
-  [s k] (when s {k (java.time.LocalDate/parse s dtf)}))
+  [s k] (when s {k (java.time.LocalDateTime/parse s dtf)}))
 
 (defn- parse-pid3
   "Parse the patient identifier (PID.3) section of the Patient Demographics Query (PDQ)."
@@ -118,8 +140,8 @@
        :telephones           (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
                                      (zx/xml-> pid ::hl7/PID.14 parse-telephone))
        :emails               (filter #(re-matches email-pattern %)
-                                     (concat (zx/xml1-> pid ::hl7/PID.13 ::XTN.4 zx/text)
-                                             (zx/xml1-> pid ::hl7/PID.14 ::XTN.4 zx/text)))
+                                     (concat (zx/xml-> pid ::hl7/PID.13 ::hl7/XTN.4 zx/text)
+                                             (zx/xml-> pid ::hl7/PID.14 ::hl7/XTN.4 zx/text)))
        :surgery              {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48"
                               :value  (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 zx/text)}
        :general-practitioner (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.4 ::hl7/XCN.1 zx/text)}
@@ -165,8 +187,6 @@
   (parse-pdq (do-post! system value)))
 
 (comment
-
-  (get authorities "https://fhir.cav.wales.nhs.uk/Id/pas-identifier")
   (make-identifier-request {:endpoint   :live
                             :authority  "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
                             :identifier "X774755"})
@@ -178,19 +198,5 @@
                       :body   (slurp (io/resource "empi-example-response.xml"))})
   (parse-pdq fake-response)
 
-  (xml/indent parsed *out*)
 
-  (def zipper (zip/xml-zip parsed))
-  (def hl7pid (zx/xml1-> zipper
-                         ::soap/Envelope
-                         ::soap/Body
-                         ::mpi/InvokePatientDemographicsQueryResponse
-                         ::hl7/RSP_K21
-                         ::hl7/RSP_K21.QUERY_RESPONSE
-                         ::hl7/PID))
-  hl7pid
-
-  (parse-pid hl7pid)
-
-  (zx/xml1-> zipper :soapp:Body :InvokePatientDemographicsQueryResponse :a:RESP_K21 :a:RSP_K21.QUERY_RESPONSE)
   )
