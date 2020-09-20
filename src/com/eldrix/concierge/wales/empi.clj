@@ -12,11 +12,11 @@
 (xml/alias-uri :hl7 "urn:hl7-org:v2xml")
 
 (def endpoints
-  {:live {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx?wsdl"
+  {:live {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
           :processing-id "P"}
-   :test {:url           "https://mpitest.cymru.nhs.uk/PatientDemographicsQueryWS.asmx?wsdl"
+   :test {:url           "https://mpitest.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
           :processing-id "U"}
-   :dev  {:url           "http://ndc06srvmpidev2.cymru.nhs.uk:23000/PatientDemographicsQueryWS.asmx?wsdl"
+   :dev  {:url           "http://ndc06srvmpidev2.cymru.nhs.uk:23000/PatientDemographicsQueryWS.asmx"
           :processing-id "T"}})
 
 (def authorities
@@ -24,7 +24,7 @@
    {:authority      "NHS"
     :authority-type "NH"}
 
-   "https://fhir.cardiff.wales.nhs.uk/Id/pas-identifier"
+   "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
    {:authority      "140"
     :authority-type "PI"
     :ods            "RWMBV"}})
@@ -74,10 +74,12 @@
 (defn- do-post!
   "Post a request to the EMPI with a search for an identifier defined by a `system` / `value` tuple"
   [system value]
-  (let [req (make-identifier-request {:endpoint :dev :authority system :identifier value})]
+  (let [req (make-identifier-request {:endpoint :live :authority system :identifier value})]
     (client/post (:url req) {:content-type "text/xml; charset=\"utf-8\""
                              :headers      {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
-                             :body         (:xml req)})))
+                             :body         (:xml req)
+                             :proxy-host "137.4.60.101"
+                             :proxy-port 8080})))
 
 (def ^:private dtf
   "An EMPI compatible DateTimeFormatter; immutable and thread safe."
@@ -164,11 +166,13 @@
 
 (comment
 
-  (make-identifier-request {:endpoint   :dev
-                            :authority  "https://fhir.nhs.uk/Id/nhs-number"
-                            :identifier "1234567890"})
+  (get authorities "https://fhir.cav.wales.nhs.uk/Id/pas-identifier")
+  (make-identifier-request {:endpoint   :live
+                            :authority  "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
+                            :identifier "X774755"})
   (def response (do-post! "https://fhir.nhs.uk/Id/nhs-number" "1234567890"))
-  (response->pid response)
+  (def response (do-post! "https://fhir.cav.wales.nhs.uk/Id/pas-identifier" "X774755"))
+  (parse-pdq response)
 
   (def fake-response {:status 200
                       :body   (slurp (io/resource "empi-example-response.xml"))})
