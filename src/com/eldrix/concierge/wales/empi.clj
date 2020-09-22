@@ -12,12 +12,12 @@
 (xml/alias-uri :hl7 "urn:hl7-org:v2xml")
 
 (def endpoints
-  {:live {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
-          :processing-id "P"}
-   :test {:url           "https://mpitest.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
-          :processing-id "U"}
-   :dev  {:url           "http://ndc06srvmpidev2.cymru.nhs.uk:23000/PatientDemographicsQueryWS.asmx"
-          :processing-id "T"}})
+  {::live {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
+           :processing-id "P"}
+   ::test {:url           "https://mpitest.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
+           :processing-id "U"}
+   ::dev  {:url           "http://ndc06srvmpidev2.cymru.nhs.uk:23000/PatientDemographicsQueryWS.asmx"
+           :processing-id "T"}})
 
 (def authorities
   {"https://fhir.nhs.uk/Id/nhs-number"
@@ -56,7 +56,6 @@
 (def ^:private authority->system
   (zipmap (map :authority (vals authorities)) (keys authorities)))
 
-
 (def ^:private sex->sex
   "The EMPI defines sex as one of M,F, O, U, A or N, as per vcard standard."
   {"M" :male
@@ -65,7 +64,7 @@
    "N" :none
    "U" :unknown})
 
-(def ^:private dtf
+(def ^:private ^java.time.format.DateTimeFormatter dtf
   "An EMPI compatible DateTimeFormatter; immutable and thread safe."
   (java.time.format.DateTimeFormatter/ofPattern "yyyyMMddHHmmss"))
 
@@ -98,14 +97,13 @@
 
 (defn- do-post!
   "Post a request to the EMPI with a search for an identifier defined by a `system` / `value` tuple"
-  [system value]
-  (let [req (make-identifier-request {:endpoint :live :authority system :identifier value})]
+  [endpoint system value]
+  (let [req (make-identifier-request {:endpoint endpoint :authority system :identifier value})]
     (client/post (:url req) {:content-type "text/xml; charset=\"utf-8\""
                              :headers      {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
                              :body         (:xml req)
                              :proxy-host   "137.4.60.101"
                              :proxy-port   8080})))
-
 
 (defn- empi-date->map
   "Parse a date in format `yyyyMMddHHmmss` from string `s` into a map with the specified key `k`.
@@ -129,26 +127,25 @@
 (def ^:private email-pattern #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")
 
 (defn- parse-response
+  "Parses a PDQ RSP_K21_RESPONSE XML fragment."
   [loc]
-  (let [pid (zx/xml1-> loc ::hl7/PID)]
-    (if (not pid)
-      nil
-      (merge
-       {:identifiers          (zx/xml-> pid ::hl7/PID.3 parse-pid3)
-        :surname              (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
-        :first-names          (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
-        :title                (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)
-        :gender               (get sex->sex (zx/xml1-> pid ::hl7/PID.8 zx/text))
-        :telephones           (filter :telephone (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
-                                                         (zx/xml-> pid ::hl7/PID.14 parse-telephone)))
-        :emails               (filter #(re-matches email-pattern %)
-                                      (concat (zx/xml-> pid ::hl7/PID.13 ::hl7/XTN.4 zx/text)
-                                              (zx/xml-> pid ::hl7/PID.14 ::hl7/XTN.4 zx/text)))
-        :surgery              {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48"
-                               :value  (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 zx/text)}
-        :general-practitioner (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.4 ::hl7/XCN.1 zx/text)}
-       (empi-date->map (zx/xml1-> pid ::hl7/PID.7 ::hl7/TS.1 zx/text) :date-birth)
-       (empi-date->map (zx/xml1-> pid ::hl7/PID.29 ::hl7/TS.1 zx/text) :date-death)))))
+  (when-let [pid (zx/xml1-> loc ::hl7/PID)]
+    (merge
+      {:identifiers          (zx/xml-> pid ::hl7/PID.3 parse-pid3)
+       :surname              (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
+       :first-names          (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
+       :title                (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)
+       :gender               (get sex->sex (zx/xml1-> pid ::hl7/PID.8 zx/text))
+       :telephones           (filter :telephone (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
+                                                        (zx/xml-> pid ::hl7/PID.14 parse-telephone)))
+       :emails               (filter #(re-matches email-pattern %)
+                                     (concat (zx/xml-> pid ::hl7/PID.13 ::hl7/XTN.4 zx/text)
+                                             (zx/xml-> pid ::hl7/PID.14 ::hl7/XTN.4 zx/text)))
+       :surgery              {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48"
+                              :value  (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 zx/text)}
+       :general-practitioner (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.4 ::hl7/XCN.1 zx/text)}
+      (empi-date->map (zx/xml1-> pid ::hl7/PID.7 ::hl7/TS.1 zx/text) :date-birth)
+      (empi-date->map (zx/xml1-> pid ::hl7/PID.29 ::hl7/TS.1 zx/text) :date-death))))
 
 (defn- soap->responses
   [root]
@@ -175,44 +172,27 @@
   "Turns a HTTP PDQ response into a well-structured map."
   [response]
   (if (not= 200 (:status response))
-    (throw (ex-info "failed request", response))         
-    (let [parsed (xml/parse-str (:body response))
-          zipper (zip/xml-zip parsed)
-          status (soap->status zipper)]
-      (soap->responses zipper))))
+    (throw (ex-info "failed empi request" response))
+    (-> (:body response)
+        xml/parse-str
+        zip/xml-zip
+        soap->responses)))
 
 (defn fetch!
-  "Performs an EMPI fetch using the identifier `system` and `value` specified."
-  [system value]
-  (parse-pdq (do-post! system value)))
+  "Performs an EMPI fetch using the endpoint and identifier as defined by `system` and `value`."
+  [endpoint system value]
+  (parse-pdq (do-post! endpoint system value)))
 
 (comment
   (make-identifier-request {:endpoint   :live
                             :authority  "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
                             :identifier "X774755"})
-  (def response (do-post! "https://fhir.nhs.uk/Id/nhs-number" "12345dd67890"))
-  (def response (do-post! "https://fhir.cav.wales.nhs.uk/Id/pas-identifier" "X774755"))
+  (def response (do-post! ::live "https://fhir.nhs.uk/Id/nhs-number" "1234567890"))
+  (def response (do-post! ::live "https://fhir.cav.wales.nhs.uk/Id/pas-identifier" "X774755"))
   (parse-pdq response)
 
+  (def fake-response {:status 200
+                      :body   (slurp (io/resource "empi-example-response.xml"))})
+  (parse-pdq fake-response)
 
-  (def parsed (xml/parse-str (:body response)))
-  parsed
-  (def zipper (zip/xml-zip parsed))
-  (def pid (zx/xml1-> zipper
-                     ::soap/Envelope
-                     ::soap/Body
-                     ::mpi/InvokePatientDemographicsQueryResponse
-                     ::hl7/RSP_K21
-                     ::hl7/RSP_K21.QUERY_RESPONSE
-                     ::hl7/PID))
-  pid
-  (zx/xml-> pid ::hl7/PID.3 parse-pid3)
-(zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
-  
-  (filter :telephone (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
-          (zx/xml-> pid ::hl7/PID.14 parse-telephone)))
-       
-                                     
-                                     (def fake-response {:status 200
-                                                         :body   (slurp (io/resource "empi-example-response.xml"))})
-                                     (parse-pdq fake-response))
+  )
