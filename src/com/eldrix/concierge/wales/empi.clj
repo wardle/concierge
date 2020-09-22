@@ -131,22 +131,24 @@
 (defn- parse-response
   [loc]
   (let [pid (zx/xml1-> loc ::hl7/PID)]
-    (merge
-      {:identifiers          (zx/xml-> pid ::hl7/PID.3 parse-pid3)
-       :surname              (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
-       :first-names          (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
-       :title                (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)
-       :gender               (get sex->sex (zx/xml1-> pid ::hl7/PID.8 zx/text))
-       :telephones           (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
-                                     (zx/xml-> pid ::hl7/PID.14 parse-telephone))
-       :emails               (filter #(re-matches email-pattern %)
-                                     (concat (zx/xml-> pid ::hl7/PID.13 ::hl7/XTN.4 zx/text)
-                                             (zx/xml-> pid ::hl7/PID.14 ::hl7/XTN.4 zx/text)))
-       :surgery              {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48"
-                              :value  (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 zx/text)}
-       :general-practitioner (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.4 ::hl7/XCN.1 zx/text)}
-      (empi-date->map (zx/xml1-> pid ::hl7/PID.7 ::hl7/TS.1 zx/text) :date-birth)
-      (empi-date->map (zx/xml1-> pid ::hl7/PID.29 ::hl7/TS.1 zx/text) :date-death))))
+    (if (not pid)
+      nil
+      (merge
+       {:identifiers          (zx/xml-> pid ::hl7/PID.3 parse-pid3)
+        :surname              (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
+        :first-names          (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
+        :title                (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)
+        :gender               (get sex->sex (zx/xml1-> pid ::hl7/PID.8 zx/text))
+        :telephones           (filter :telephone (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
+                                                         (zx/xml-> pid ::hl7/PID.14 parse-telephone)))
+        :emails               (filter #(re-matches email-pattern %)
+                                      (concat (zx/xml-> pid ::hl7/PID.13 ::hl7/XTN.4 zx/text)
+                                              (zx/xml-> pid ::hl7/PID.14 ::hl7/XTN.4 zx/text)))
+        :surgery              {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48"
+                               :value  (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 zx/text)}
+        :general-practitioner (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.4 ::hl7/XCN.1 zx/text)}
+       (empi-date->map (zx/xml1-> pid ::hl7/PID.7 ::hl7/TS.1 zx/text) :date-birth)
+       (empi-date->map (zx/xml1-> pid ::hl7/PID.29 ::hl7/TS.1 zx/text) :date-death)))))
 
 (defn- soap->responses
   [root]
@@ -173,13 +175,11 @@
   "Turns a HTTP PDQ response into a well-structured map."
   [response]
   (if (not= 200 (:status response))
-    (println "Failed request : " response)                  ;; TODO: log instead of print
+    (throw (ex-info "failed request", response))         
     (let [parsed (xml/parse-str (:body response))
           zipper (zip/xml-zip parsed)
           status (soap->status zipper)]
-      (if (not= "OK" status)
-        (println "Failed request status code: " status " response: " response)
-        (soap->responses zipper)))))
+      (soap->responses zipper))))
 
 (defn fetch!
   "Performs an EMPI fetch using the identifier `system` and `value` specified."
@@ -190,13 +190,29 @@
   (make-identifier-request {:endpoint   :live
                             :authority  "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
                             :identifier "X774755"})
-  (def response (do-post! "https://fhir.nhs.uk/Id/nhs-number" "1234567890"))
+  (def response (do-post! "https://fhir.nhs.uk/Id/nhs-number" "12345dd67890"))
   (def response (do-post! "https://fhir.cav.wales.nhs.uk/Id/pas-identifier" "X774755"))
   (parse-pdq response)
 
-  (def fake-response {:status 200
-                      :body   (slurp (io/resource "empi-example-response.xml"))})
-  (parse-pdq fake-response)
 
-
-  )
+  (def parsed (xml/parse-str (:body response)))
+  parsed
+  (def zipper (zip/xml-zip parsed))
+  (def pid (zx/xml1-> zipper
+                     ::soap/Envelope
+                     ::soap/Body
+                     ::mpi/InvokePatientDemographicsQueryResponse
+                     ::hl7/RSP_K21
+                     ::hl7/RSP_K21.QUERY_RESPONSE
+                     ::hl7/PID))
+  pid
+  (zx/xml-> pid ::hl7/PID.3 parse-pid3)
+(zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
+  
+  (filter :telephone (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
+          (zx/xml-> pid ::hl7/PID.14 parse-telephone)))
+       
+                                     
+                                     (def fake-response {:status 200
+                                                         :body   (slurp (io/resource "empi-example-response.xml"))})
+                                     (parse-pdq fake-response))
