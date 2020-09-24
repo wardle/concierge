@@ -2,6 +2,7 @@
   "Integration with the NHS Wales Enterprise Master Patient Index (EMPI) service."
   (:require [clojure.java.io :as io]
             [clj-http.client :as client]
+            [com.eldrix.concierge.config :refer [config]]
             [selmer.parser]
             [clojure.data.xml :as xml]
             [clojure.zip :as zip]
@@ -10,14 +11,6 @@
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
 (xml/alias-uri :mpi "http://apps.wales.nhs.uk/mpi/")
 (xml/alias-uri :hl7 "urn:hl7-org:v2xml")
-
-(def endpoints
-  {::live {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
-           :processing-id "P"}
-   ::test {:url           "https://mpitest.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
-           :processing-id "U"}
-   ::dev  {:url           "http://ndc06srvmpidev2.cymru.nhs.uk:23000/PatientDemographicsQueryWS.asmx"
-           :processing-id "T"}})
 
 (def authorities
   {"https://fhir.nhs.uk/Id/nhs-number"
@@ -81,19 +74,21 @@
    :message-control-id    (java.util.UUID/randomUUID)
    })
 
-(defn ^:private make-identifier-request
+(defn- endpoint-from-config []
+  {:url (get-in config [:wales :empi :url])
+   :processing-id (get-in config [:wales :empi :processing-id])})
+
+(defn- make-identifier-request
   "Creates a request for an identifier search using the endpoint specified."
-  [{:keys [endpoint authority identifier]
+  [{:keys [authority identifier]
     :as   all}]
-  (let [req
-        (merge default-request
-               all
-               (get endpoints endpoint)
-               (get authorities authority)
-               {:identifier identifier})]
-    {:url    (get-in endpoints [endpoint :url])
-     :params req
-     :xml    (selmer.parser/render-file (io/resource "wales-empi-request.xml") req)}))
+  (let [req (merge default-request
+                   all
+                   (endpoint-from-config)
+                   (get authorities authority)
+                   {:identifier identifier})
+        body (selmer.parser/render-file (io/resource "wales-empi-request.xml") req)]
+    (assoc req :xml body)))
 
 (defn- do-post!
   "Post a request to the EMPI with a search for an identifier defined by a `system` / `value` tuple"
@@ -178,14 +173,13 @@
         zip/xml-zip
         soap->responses)))
 
-(defn fetch!
+(defn resolve!
   "Performs an EMPI fetch using the endpoint and identifier as defined by `system` and `value`."
-  [endpoint system value]
-  (parse-pdq (do-post! endpoint system value)))
+  [system value]
+  (parse-pdq (do-post! ::live system value)))
 
 (comment
-  (make-identifier-request {:endpoint   :live
-                            :authority  "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
+  (make-identifier-request {:authority  "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
                             :identifier "X774755"})
   (def response (do-post! ::live "https://fhir.nhs.uk/Id/nhs-number" "1234567890"))
   (def response (do-post! ::live "https://fhir.cav.wales.nhs.uk/Id/pas-identifier" "X774755"))
