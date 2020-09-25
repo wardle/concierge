@@ -60,16 +60,14 @@
 
 (defn connect-to-client
   "Configure a new client connection from the request 'req' and connection 'conn' specified.
-  The 'pKey' represents a private key that should be used to validate a JWT, that must be the
-  first message sent to the socket.
-
   New client connections must send a valid token within timeout specified in milliseconds, default 5000ms.
+  This token will be validated using the authfn function, which should return a boolean.
   Only a single client is permitted and this is enforced; the most recent client connection will be used."
-  [req conn pKey & {:keys [timeout-milliseconds]}]
+  [req conn authfn & {:keys [pkey timeout-milliseconds]}]
   (log :info "new client connection attempted... awaiting token")
   (d/let-flow
     [token (s/try-take! conn (or timeout-milliseconds 5000))] ;; otherwise, wait for the first message which must be a token.
-    (if (valid-token? token)
+    (if (authfn token)
       (do (log/info "connecting new client " req)
           (let [[old _] (reset-vals! connected-client-socket conn)] ;; atomically swap values with no race condition
             (log/info "closing old client: " old)
@@ -88,7 +86,7 @@
             (http/websocket-connection req)
             (fn [_] nil))]
     (if conn
-      (connect-to-client req conn (get-jwt-public-key))
+      (connect-to-client req conn #(valid-token? % (get-jwt-public-key)))
       non-websocket-request)))
 
 (def handler
