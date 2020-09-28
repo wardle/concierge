@@ -4,18 +4,26 @@
   the request to software running on-prem, returning the response to the external client.
 
   The 'connect' internal client connects to the server at '/ws'.
-  The external client sends requests and get responses at '/api'."
+  The external client sends requests and get responses at '/api'.
+
+  The serialisation format is simple. From the server to the client, and vice versa,
+  we send messages using EDN turned into a string:
+  {:message-id xxxx
+   :body xxxx}"
   (:require
     [aleph.http :as http]
     [buddy.sign.jwt :as jwt]
+    [clojure.string :as str]
     [clojure.tools.logging :refer [log]]
-    [compojure.core :as compojure :refer [GET]]
+    [compojure.core :as compojure :refer [GET POST]]
     [compojure.route :as route]
     [manifold.stream :as s]
     [manifold.deferred :as d]
+    [manifold.bus :as bus]
     [mount.core :as mount]
     [ring.middleware.params :as params]
-    [clojure.tools.logging :as log]))
+    [clojure.tools.logging :as log]
+    [clojure.string :as str]))
 
 (defn- jwt-expiry
   "Returns a JWT-compatible expiry (seconds since unix epoch)."
@@ -38,17 +46,55 @@
    :headers {"content-type" "application/text"}
    :body    "Expected a websocket request."})
 
+(defn ^:private failed-external-client-request [s]
+  {:status  500
+   :headers {"content-type" "application/text"}
+   :body    s})
 
 ;; we only permit one connected client; this is it
 (defonce ^:private connected-client-socket (atom nil))
-(defonce ^:private to-client (s/stream))                    ;; TODO: remove once testing complete
-(defonce ^:private from-client (s/stream))
+(defonce ^:private from-client (bus/event-bus))
+(defonce ^:private message-id (atom 0))
 
 (defn external-client-handler
+  "Handle client requests and gets results from the connected internal client.
+
+  The flow is:
+  - external request received and authenticated (TODO:authentication)
+  - allocate a unique message identifier and wrap the request with that metadata
+  - subscribe to the results message bus for messages with that identifier
+  - forward to client
+  - wait for results message, or timeout
+  - unwrap message and send to requestor."
   [req]
-  {:status 200
-   :headers {"Content-Type" "text/plain"}
-   :body "Not implemented... yet"})
+  (log/warn "external client request accepted without authentication")
+  (log/info (str "external client request:" req))
+  (let [msg-id (swap! message-id inc)
+        result-stream (bus/subscribe from-client msg-id)
+        body-str (ring.util.request/body-string req)
+        msg (pr-str {:message-id msg-id :body body-str})
+        client @connected-client-socket
+        sent (and client @(s/try-put! client msg 3000))]
+    (log/info (str "trying to send message to internal client: " msg))
+    (if sent
+      (if-let [result @(s/try-take! result-stream 3000)]
+        {:status  200
+         :headers {"content-type" "application/text"}
+         :body    (:body result)}
+        (do
+          (log/info (str "failed to get response, or no response within timeout" req))
+          (failed-external-client-request (str "failed to get response or not response within timeout" req))))
+      (do
+        (log/info (str "failed to forward req " req))
+        (when-not client "no connected internal client.")
+        (failed-external-client-request (str "failed to forward request to internal client. "))))))
+
+
+(defn receive-from-internal
+  [m]
+  (let [m2 (clojure.edn/read-string m)]
+    (log/info (str "received message back from client:" m2))
+    (bus/publish! from-client (:message-id m2) m2)))
 
 (defn connect-to-internal-client
   "Configure a new client connection from the request 'req' and connection 'conn' specified.
@@ -61,25 +107,24 @@
         auth-fn (get-in req [:config :internal-token-auth-fn])]
     (when (nil? auth-fn) (throw (ex-info "missing [:config :internal-token-auth-fn] in request for internal client connection" req)))
     (d/let-flow
-      [token (s/try-take! conn timeout)]
+      [token @(s/try-take! conn timeout)]
       (if (auth-fn token)
         (do (log/info (str "connecting new client " req))
             (let [[old _] (reset-vals! connected-client-socket conn)] ;; atomically swap values with no race condition
               (log/info "closing old client: " old)
               (when old (s/close! old)))
-            (s/connect conn from-client {:downstream? false})
-            (s/connect to-client conn))
+            (s/consume receive-from-internal conn))
         (do (log/info "timeout or invalid token received from connection: " conn)
             (s/close! conn)))))
   nil)
 
 (defn internal-client-handler
   "A Ring handler that negotiates a new connection to a client using the
-  connection function specified"
+  connection function specified."
   [req]
   (d/let-flow
     [conn (d/catch
-            (http/websocket-connection req {:heartbeats {:send-after-idle 5000}})
+            (http/websocket-connection req)
             (fn [_] nil))]
     (if conn
       (connect-to-internal-client req conn)
@@ -92,7 +137,7 @@
 (defn app-routes [config]
   (-> (compojure/routes
         (GET "/ws" [] internal-client-handler)
-          (GET "/api" [] external-client-handler)
+        (POST "/api" [] external-client-handler)
         (route/not-found "Not found."))
       (params/wrap-params)
       (wrap-config config)))
@@ -110,9 +155,13 @@
     server))
 
 (defn fake-client [name sock message]
-  (println "client '" name "' got: " (clojure.edn/read-string message))
-  (println "client '" name "' replying...")
-  @(s/put! sock (str "[" name "] Thanks for your message, it was: " message)))
+  (let [m (clojure.edn/read-string message)
+        reply (pr-str {:client     name
+                       :message-id (:message-id m)
+                       :body       (str/upper-case (:body m))})]
+    (println "client '" name "' got: " message)
+    (println "client '" name "' replying with:" reply)
+    @(s/put! sock reply)))
 
 (defn fake-server [message]
   (println "server got: " message))
@@ -124,7 +173,6 @@
   (def port 10000)
   (def server (run-server port ec-pubkey))
   server
-  (s/consume fake-server from-client)
 
   @connected-client-socket
 
@@ -141,9 +189,8 @@
   (s/consume (partial fake-client "c2" c2) c2)
 
   (s/put! from-client "Wobble")
-  (s/put! to-client "Hi there client")
-  (s/put! @connected-client-socket "I love you")
-  (s/put! to-client (pr-str {:wibble "flibble"}))
+  (s/put! @connected-client-socket "Hi client")
+  (s/put! @connected-client-socket (pr-str {:wibble "flibble"}))
   @(s/put! c1 "This is a new message from client 1")
   @(s/put! c2 "This is a new message from client 2")
   (s/close! c2)
