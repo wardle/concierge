@@ -1,8 +1,11 @@
 (ns com.eldrix.concierge.connect
-  "Create a remote cloud-based server that bidirectionally communicates with an on-premise client via websockets
-  permitting requests to the cloud server to be satisfied by software running on-prem."
+  "Create a remote cloud-based server that bidirectionally communicates with an on-premise 'internal' client
+  via websockets permitting requests to the cloud server from external clients to be satisfied by tunneling
+  the request to software running on-prem, returning the response to the external client.
+
+  The 'connect' internal client connects to the server at '/ws'.
+  The external client sends requests and get responses at '/api'."
   (:require
-    [com.eldrix.concierge.config :as config]
     [aleph.http :as http]
     [buddy.sign.jwt :as jwt]
     [clojure.tools.logging :refer [log]]
@@ -14,86 +17,97 @@
     [ring.middleware.params :as params]
     [clojure.tools.logging :as log]))
 
-(defn get-jwt-public-key
-  "Returns the public key either as defined in the configuration file or from file specified."
-  ([]
-   (when-let [filename (get-in config/config [:connect :public-key])]
-     (get-jwt-public-key filename)))
-  ([filename] (buddy.core.keys/public-key filename)))
-
-(defn get-jwt-private-key
-  "Returns the private key either as defined in the configuration file or from file specified."
-  ([] (when-let [filename (get-in config/config [:connect :private-key])]
-        (get-jwt-private-key filename)))
-  ([filename] (buddy.core.keys/private-key filename)))
-
-(defn jwt-expiry
+(defn- jwt-expiry
   "Returns a JWT-compatible expiry (seconds since unix epoch)."
   [seconds] (-> (java.time.Instant/now) (.plusSeconds seconds) (.getEpochSecond)))
 
-(defn make-token
-  ([m] (make-token m (get-jwt-private-key)))
-  ([m pkey] (jwt/sign (assoc m :exp (jwt-expiry 30)) pkey {:alg :es256})))
+(defn- make-token
+  "Makes a token using the private key (ES256) specified, with a default expiry in 30 seconds."
+  ([m pkey] (make-token m pkey 30))
+  ([m pkey expires-secs] (jwt/sign (assoc m :exp (jwt-expiry expires-secs)) pkey {:alg :es256})))
 
-(defn valid-token?
-  "Returns the information from the token or nil if invalid."
-  ([token] (valid-token? token (get-jwt-public-key)))
-  ([token pKey] (try
-                  (if token (jwt/unsign token pKey {:alg :es256}) nil)
-                  (catch Exception e nil))))
+(defn- valid-token?
+  "Returns the information from the token or nil if invalid using the public key specified."
+  ([token pKey]
+   (try (if token (jwt/unsign token pKey {:alg :es256}) nil)
+        (catch Exception e nil))))
 
-(def non-websocket-request
+(def ^:private non-websocket-request
   "Response returned if there is a failure in handshake while setting up websocket."
   {:status  400
    :headers {"content-type" "application/text"}
    :body    "Expected a websocket request."})
 
-(def unauthorised-request
-  {:status  401
-   :headers {"content-type" "application/text"}
-   :body    "Invalid token"})
 
-;; we only permit one connected client
-(def ^:private connected-client-socket (atom nil))
-(def ^:private to-client (s/stream))                        ;; TODO: remove once testing complete
-(def ^:private from-client (s/stream))
+;; we only permit one connected client; this is it
+(defonce ^:private connected-client-socket (atom nil))
+(defonce ^:private to-client (s/stream))                    ;; TODO: remove once testing complete
+(defonce ^:private from-client (s/stream))
 
-(defn connect-to-client
+(defn external-client-handler
+  [req]
+  {:status 200
+   :headers {"Content-Type" "text/plain"}
+   :body "Not implemented... yet"})
+
+(defn connect-to-internal-client
   "Configure a new client connection from the request 'req' and connection 'conn' specified.
   New client connections must send a valid token within timeout specified in milliseconds, default 5000ms.
-  This token will be validated using the authfn function, which should return a boolean.
+  This token will be validated using the 'internal-token-auth-fn' function, which should return a boolean.
   Only a single client is permitted and this is enforced; the most recent client connection will be used."
-  [req conn authfn & {:keys [pkey timeout-milliseconds]}]
-  (log :info "new client connection attempted... awaiting token")
-  (d/let-flow
-    [token (s/try-take! conn (or timeout-milliseconds 5000))] ;; otherwise, wait for the first message which must be a token.
-    (if (authfn token)
-      (do (log/info "connecting new client " req)
-          (let [[old _] (reset-vals! connected-client-socket conn)] ;; atomically swap values with no race condition
-            (log/info "closing old client: " old)
-            (when old (s/close! old)))
-          (s/connect conn from-client {:downstream? false})
-          (s/connect to-client conn))
-      (do (log/error "timeout or invalid token received from connection: " conn)
-          (s/close! conn))))
+  [req conn]
+  (log :info "new ws client connection attempted... awaiting token")
+  (let [timeout (or (get-in req [:config :timeout-milliseconds]) 5000)
+        auth-fn (get-in req [:config :internal-token-auth-fn])]
+    (when (nil? auth-fn) (throw (ex-info "missing [:config :internal-token-auth-fn] in request for internal client connection" req)))
+    (d/let-flow
+      [token (s/try-take! conn timeout)]
+      (if (auth-fn token)
+        (do (log/info (str "connecting new client " req))
+            (let [[old _] (reset-vals! connected-client-socket conn)] ;; atomically swap values with no race condition
+              (log/info "closing old client: " old)
+              (when old (s/close! old)))
+            (s/connect conn from-client {:downstream? false})
+            (s/connect to-client conn))
+        (do (log/info "timeout or invalid token received from connection: " conn)
+            (s/close! conn)))))
   nil)
 
-(defn client-handler
-  "A Ring handler that negotiates a new connection to a client."
+(defn internal-client-handler
+  "A Ring handler that negotiates a new connection to a client using the
+  connection function specified"
   [req]
   (d/let-flow
     [conn (d/catch
-            (http/websocket-connection req)
+            (http/websocket-connection req {:heartbeats {:send-after-idle 5000}})
             (fn [_] nil))]
     (if conn
-      (connect-to-client req conn #(valid-token? % (get-jwt-public-key)))
+      (connect-to-internal-client req conn)
       non-websocket-request)))
 
-(def handler
-  (params/wrap-params
-    (compojure/routes
-      (GET "/api" [] client-handler)
-      (route/not-found "Not found."))))
+(defn wrap-config [f config]
+  (fn [req]
+    (f (assoc req :config config))))
+
+(defn app-routes [config]
+  (-> (compojure/routes
+        (GET "/ws" [] internal-client-handler)
+          (GET "/api" [] external-client-handler)
+        (route/not-found "Not found."))
+      (params/wrap-params)
+      (wrap-config config)))
+
+(defn run-server
+  "Runs a 'connect' server.
+  - port - port on which to run server, or random if zero
+  - internal-client-pkey - public key to use to validate JWT tokens for internal client"
+  [port internal-client-pkey]
+  (let [server (http/start-server
+                 (app-routes {:internal-token-auth-fn #(valid-token? % internal-client-pkey)})
+                 {:port port})
+        actual-port (aleph.netty/port server)]
+    (log/info "started server on port " actual-port)
+    server))
 
 (defn fake-client [name sock message]
   (println "client '" name "' got: " (clojure.edn/read-string message))
@@ -104,22 +118,26 @@
   (println "server got: " message))
 
 (comment
-  (mount/start)
-  (mount/stop)
-  (def port (or (get-in config/config [:connect :server-port]) 10000))
-  (def server (http/start-server handler {:port port}))
+  (def ec-privkey (buddy.core.keys/private-key "test/resources/ecprivkey.pem"))
+  (def ec-pubkey (buddy.core.keys/public-key "test/resources/ecpubkey.pem"))
+
+  (def port 10000)
+  (def server (run-server port ec-pubkey))
+  server
   (s/consume fake-server from-client)
 
   @connected-client-socket
 
-  (def url (str "ws://localhost:" port "/api"))
+  (def url (str "ws://localhost:" port "/ws"))
   (def c1 @(http/websocket-client url))
-  (def token (make-token {:system "concierge"}))
+  (def token (make-token {:system "concierge"} ec-privkey))
   @(s/put! c1 token)
+  (manifold.stream/description c1)
   (s/consume (partial fake-client "c1" c1) c1)
 
   (def c2 @(http/websocket-client url))
   (s/put! c2 "secret")
+  (manifold.stream/description c2)
   (s/consume (partial fake-client "c2" c2) c2)
 
   (s/put! from-client "Wobble")
@@ -150,12 +168,10 @@
   (def ec-privkey (buddy.core.keys/private-key "ecprivkey.pem"))
   (def ec-pubkey (buddy.core.keys/public-key "ecpubkey.pem"))
 
-  (def ec-privkey (get-jwt-private-key))
-  (def ec-pubkey (get-jwt-public-key))
   ;; Use them like plain secret password with hmac algorithms for sign
   (def signed-data (jwt/sign {:foo "bar" :exp (jwt-expiry 30)} ec-privkey {:alg :es256}))
   signed-data
-  (valid-token? signed-data)
+  (valid-token? signed-data ec-pubkey)
   ;; And unsign
   (def unsigned-data (jwt/unsign signed-data ec-pubkey {:alg :es256}))
   unsigned-data

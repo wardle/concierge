@@ -1,8 +1,7 @@
-{:wales   {
-           :empi {:url           "https://mpitest.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
-                  :processing-id "U"}}
- :connect {
-           :server-port 10000
+{:wales   {:empi {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
+                  :processing-id "P"}}
+ :connect {:server-port 10000
            :public-key  "ecpubkey.pem"                      ;; concierge connect JWT credentials for securing client<->server WebSockets channel
-           :private-key "ecprivkey.pem"
-           }}
+           :private-key "ecprivkey.pem"}
+ :http    {:proxy-host "137.4.60.101"
+           :proxy-port 8080}}
