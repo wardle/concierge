@@ -1,12 +1,16 @@
 (ns com.eldrix.concierge.wales.empi
   "Integration with the NHS Wales Enterprise Master Patient Index (EMPI) service."
-  (:require [clojure.java.io :as io]
+  (:require [com.eldrix.concierge.resolve :refer [Resolver]]
+            [clojure.java.io :as io]
+            [clojure.string :as str]
+            [clojure.tools.logging :refer [log]]
             [clj-http.client :as client]
-            [com.eldrix.concierge.config :refer [config]]
             [selmer.parser]
             [clojure.data.xml :as xml]
             [clojure.zip :as zip]
-            [clojure.data.zip.xml :as zx]))
+            [clojure.data.zip.xml :as zx]
+            [clojure.tools.logging :as log]))
+
 
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
 (xml/alias-uri :mpi "http://apps.wales.nhs.uk/mpi/")
@@ -49,13 +53,13 @@
 (def ^:private authority->system
   (zipmap (map :authority (vals authorities)) (keys authorities)))
 
-(def ^:private sex->sex
-  "The EMPI defines sex as one of M,F, O, U, A or N, as per vcard standard."
-  {"M" :male
-   "F" :female
-   "O" :other
-   "N" :none
-   "U" :unknown})
+(def ^:private gender->gender
+  "The EMPI defines gender as one of M,F, O, U, A or N, as per vcard standard."
+  {"M" {:system "http://hl7.org/fhir/administrative-gender" :value :male}
+   "F" {:system "http://hl7.org/fhir/administrative-gender" :value :female}
+   "O" {:system "http://hl7.org/fhir/administrative-gender" :value :other}
+   "N" {:system "http://hl7.org/fhir/administrative-gender" :value :other}
+   "U" {:system "http://hl7.org/fhir/administrative-gender" :value :unknown}})
 
 (def ^:private ^java.time.format.DateTimeFormatter dtf
   "An EMPI compatible DateTimeFormatter; immutable and thread safe."
@@ -70,35 +74,17 @@
    ;; :identifier "1234567890"
    ;; :authority "NHS"  ;; empi organisation code
    ;; :authority-type  "NH"
+   :url                   nil
+   :processing-id         nil
    :date-time             (.format dtf (java.time.LocalDateTime/now))
    :message-control-id    (java.util.UUID/randomUUID)
    })
 
-(defn- endpoint-from-config []
-  {:url (get-in config [:wales :empi :url])
-   :processing-id (get-in config [:wales :empi :processing-id])})
-
-(defn- make-identifier-request
-  "Creates a request for an identifier search using the endpoint specified."
-  [{:keys [authority identifier]
-    :as   all}]
-  (let [req (merge default-request
-                   all
-                   (endpoint-from-config)
-                   (get authorities authority)
-                   {:identifier identifier})
-        body (selmer.parser/render-file (io/resource "wales-empi-request.xml") req)]
-    (assoc req :xml body)))
-
-(defn- do-post!
-  "Post a request to the EMPI with a search for an identifier defined by a `system` / `value` tuple"
-  [endpoint system value]
-  (let [req (make-identifier-request {:endpoint endpoint :authority system :identifier value})]
-    (client/post (:url req) {:content-type "text/xml; charset=\"utf-8\""
-                             :headers      {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
-                             :body         (:xml req)
-                             :proxy-host   "137.4.60.101"
-                             :proxy-port   8080})))
+(defn- config []
+  {:url           (get-in config [:wales :empi :url])
+   :processing-id (get-in config [:wales :empi :processing-id])
+   :proxy-host    (get-in config [:http :proxy-host])
+   :proxy-port    (get-in config [:http :proxy-port])})
 
 (defn- empi-date->map
   "Parse a date in format `yyyyMMddHHmmss` from string `s` into a map with the specified key `k`.
@@ -130,7 +116,7 @@
        :surname              (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
        :first-names          (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
        :title                (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)
-       :gender               (get sex->sex (zx/xml1-> pid ::hl7/PID.8 zx/text))
+       :gender               (get gender->gender (zx/xml1-> pid ::hl7/PID.8 zx/text))
        :telephones           (filter :telephone (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
                                                         (zx/xml-> pid ::hl7/PID.14 parse-telephone)))
        :emails               (filter #(re-matches email-pattern %)
@@ -164,7 +150,7 @@
              zx/text))
 
 (defn- parse-pdq
-  "Turns a HTTP PDQ response into a well-structured map."
+  "Turns a HTTP HL7 PDQ response into a well-structured map."
   [response]
   (if (not= 200 (:status response))
     (throw (ex-info "failed empi request" response))
@@ -173,20 +159,60 @@
         zip/xml-zip
         soap->responses)))
 
+(defn- do-post!
+  "Post a request to the EMPI."
+  [{:keys [url xml proxy-host proxy-port] :as req}]
+  (when-not url (throw (ex-info "no URL specified for EMPI endpoint" req)))
+  (log/info "empi request:" (dissoc req :xml))
+  (let [has-proxy (and proxy-host proxy-port)]
+    (client/request (merge {:method       :post
+                            :url          url
+                            :content-type "text/xml; charset=\"utf-8\""
+                            :headers      {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
+                            :body         xml}
+                           (when has-proxy {:proxy-host proxy-host
+                                            :proxy-port proxy-port})))))
+
+(defn- make-identifier-request
+  "Creates a request for an identifier search."
+  [authority identifier params]
+  (let [req (merge default-request
+                   params
+                   (or (get authorities authority) {:authority authority})
+                   {:identifier identifier})
+        body (selmer.parser/render-file (io/resource "wales-empi-req.xml") req)]
+    (assoc req :xml body)))
+
 (defn resolve!
-  "Performs an EMPI fetch using the endpoint and identifier as defined by `system` and `value`."
-  [system value]
-  (parse-pdq (do-post! ::live system value)))
+  "Performs an EMPI fetch using the identifier as defined by `system` and `value` and
+  the defined configuration.
+
+  - url : the URL of the EMPI endpoint
+  - processing-id : one of P (production) U (testing) or T (development) for type of server.
+  - proxy-host : if required, proxy hostname as per clj-http
+  - proxy-port : if required, proxy port as per clj-http"
+  [system value {:keys [url processing-id proxy-host proxy-port] :as opts}]
+  (-> (make-identifier-request system value opts)
+      (do-post!)
+      (parse-pdq)))
+
+(deftype EmpiService [url processing-id opts]
+  Resolver
+  (resolve-id [this system value] (resolve! system value (merge {:url url :processing-id processing-id} opts))))
 
 (comment
-  (make-identifier-request {:authority  "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
-                            :identifier "X774755"})
-  (def response (do-post! ::live "https://fhir.nhs.uk/Id/nhs-number" "1234567890"))
-  (def response (do-post! ::live "https://fhir.cav.wales.nhs.uk/Id/pas-identifier" "X774755"))
+  (def proxy-host nil)
+  (keys authorities)
+  (require '[com.eldrix.concierge.config :as config])
+  (mount/start)
+  (def empi-config (merge (get-in config/root [:wales :empi]) (get-in config/root [:http])))
+  (def req (make-identifier-request "https://fhir.cav.wales.nhs.uk/Id/pas-identifier" "X774755" empi-config))
+  (dissoc req :xml)
+  (def response (do-post! req))
   (parse-pdq response)
 
   (def fake-response {:status 200
-                      :body   (slurp (io/resource "empi-example-response.xml"))})
+                      :body   (slurp (io/resource "wales-emp-resp-example.xml"))})
   (parse-pdq fake-response)
 
   )

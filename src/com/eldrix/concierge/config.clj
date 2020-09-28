@@ -1,13 +1,21 @@
 (ns com.eldrix.concierge.config
   (:require [cprop.core :refer [load-config]]
-            [cprop.source :refer [from-resource]]
             [clojure.java.io :as io]
-            [mount.core :refer [args defstate]]))
+            [clojure.tools.cli :as cli]
+            [mount.core :refer [args defstate]]
+            [mount.core :as mount]))
 
-(defstate config
-          :start (load-config
-                   :merge [(from-resource "config.edn")]))
+(defstate root
+          :start (load-config))
+
+(defn http-proxy []
+  "HTTP proxy information in the format needed by clj-http and equivalent client libraries."
+  (select-keys (:http root) [:proxy-host :proxy-port]))
+
 
 (comment
   (mount.core/start)
-  (mount.core/stop))
+  (mount.core/stop)
+  (http-proxy)
+  (cprop.source/from-system-props)
+  )
