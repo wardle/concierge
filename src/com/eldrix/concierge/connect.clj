@@ -53,7 +53,7 @@
 
 ;; we only permit one connected client; this is it
 (defonce ^:private connected-client-socket (atom nil))
-;; a simple unique (for server) message identifier.
+;; a simple locally unique (for server) message identifier.
 (defonce ^:private message-id (atom 0))
 ;; a message bus bringing messages from internal client to server; topic = message id
 (defonce ^:private from-client (bus/event-bus))
@@ -62,40 +62,46 @@
   "Handle client requests and gets results from the connected internal client.
 
   The flow is:
-  - external request received and authenticated (TODO:authentication)
+  - external request received and authenticated
   - allocate a unique message identifier and wrap the request with that metadata
   - subscribe to the results message bus for messages with that identifier
   - forward to client
   - wait for results message, or timeout
-  - unwrap message and send to requestor."
+  - unwrap message and send to requester."
   [req]
-  (log/warn "external client request accepted without authentication")
-  (log/info  "external client request:" req)
-  (let [msg-id (swap! message-id inc)
-        result-stream (bus/subscribe from-client msg-id)
-        body-str (ring.util.request/body-string req)
-        msg (pr-str {:message-id msg-id :body body-str})
-        client @connected-client-socket
-        sent (and client @(s/try-put! client msg 3000))]
-    (log/info "will send message to internal client: " msg)
-    (if sent
-      (if-let [result @(s/try-take! result-stream 3000)]
-        {:status  200
-         :headers {"content-type" "application/text"}
-         :body    (:body result)}
-        (do
-          (log/info "failed to get response, or no response within timeout" req)
-          (failed-external-client-request 504 (str "failed to get response or not response within timeout" req))))
-      (do
-        (log/info "failed to forward req " req)
-        (when-not client "no connected internal client.")
-        (failed-external-client-request 502 (str "failed to forward request to internal client. "))))))
+  (let [auth-fn (get-in req [:config :external-token-auth-fn])
+        auth-header (get-in req [:headers "authorization"])
+        token (if auth-header (last (re-find #"(?i)^Bearer (.+)$" auth-header)) nil)]
+    (log/info "external client request:" (:headers req)
+    (when (nil? auth-fn) (throw (ex-info "missing [:config :external-token-auth-fn] in request for external client connection" req)))
+    (if-not (auth-fn token)
+      (do (log/info "invalid token in request" (:headers req))
+          (failed-external-client-request 401 "invalid token in request"))
+      (let [msg-id (swap! message-id inc)
+            result-stream (bus/subscribe from-client msg-id)
+            body-str (ring.util.request/body-string req)
+            msg (pr-str {:message-id msg-id :body body-str})
+            client @connected-client-socket
+            sent? (and client @(s/try-put! client msg 3000))]
+        (log/info "will send message to internal client: " msg)
+        (if sent?
+          (if-let [result @(s/try-take! result-stream 3000)]
+            {:status  200
+             :headers {"content-type" "application/text"}
+             :body    (:body result)}
+            (do
+              (log/info "failed to get response, or no response within timeout" req)
+              (failed-external-client-request 504 (str "failed to get response or not response within timeout" req))))
+          (do
+            (log/info "failed to forward req " req)
+            (when-not client (log/info "no connected internal client."))
+            (failed-external-client-request 502 (str "failed to forward request to internal client. "))))))))
 
 
 (defn receive-from-internal
   [m]
   (let [m2 (clojure.edn/read-string m)]
-    (log/info  "received message back from client:" m2)
+    (log/info "received message back from client:" m2)
     (bus/publish! from-client (:message-id m2) m2)))
 
 (defn connect-to-internal-client
@@ -147,10 +153,12 @@
 (defn run-server
   "Runs a 'connect' server.
   - port - port on which to run server, or random if zero
-  - internal-client-pkey - public key to use to validate JWT tokens for internal client"
-  [port internal-client-pkey]
+  - internal-client-pkey - public key to use to validate JWT tokens for internal client
+  - external-client-pkey - public key to use to validate JWT tokens for external client"
+  [port internal-client-pkey external-client-pkey]
   (let [server (http/start-server
-                 (app-routes {:internal-token-auth-fn #(valid-token? % internal-client-pkey)})
+                 (app-routes {:internal-token-auth-fn #(valid-token? % internal-client-pkey)
+                              :external-token-auth-fn #(valid-token? % external-client-pkey)})
                  {:port port})
         actual-port (aleph.netty/port server)]
     (log/info "started server on port " actual-port)
@@ -187,7 +195,7 @@
   (def ec-pubkey (buddy.core.keys/public-key "test/resources/ecpubkey.pem"))
 
   (def port 10000)
-  (def server (run-server port ec-pubkey))
+  (def server (run-server port ec-pubkey ec-pubkey))
   server
 
   @connected-client-socket
@@ -198,6 +206,9 @@
   @(s/put! c1 token)
   (manifold.stream/description c1)
   (s/consume (partial fake-client "c1" c1) c1)
+
+  (def external-token (make-token {:system "some other app"} ec-privkey 30))
+  (println external-token)
 
   (def c2 @(http/websocket-client url))
   (s/put! c2 "secret")
