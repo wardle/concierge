@@ -23,53 +23,53 @@
    "https://fhir.wales.nhs.uk/Id/empi-number"               ;; TODO: need to check authority type for empi numbers
    {:authority "100" :authority-type "PE"}
 
-   "https://fhir.swansea.wales.nhs.uk/Id/east/pas-identifier"
+   "https://fhir.sbuhb.wales.nhs.uk/Id/east/pas-identifier"
    {:authority "103" :authority-type "PE"}
 
-   "https://fhir.swansea.wales.nhs.uk/Id/west/radiology-identifier"
+   "https://fhir.sbuhb.wales.nhs.uk/Id/west/radiology-identifier"
    {:authority "104" :authority-type "PE"}
 
-   "https://fhir.swansea.wales.nhs.uk/Id/west/new-radiology-identifier"
+   "https://fhir.sbuhb.wales.nhs.uk/Id/west/new-radiology-identifier"
    {:authority "106" :authority-type "PE"}
 
-   "https://fhir.swansea.wales.nhs.uk/Id/pas-identifier"
+   "https://fhir.sbuhb.wales.nhs.uk/Id/pas-identifier"
    {:authority "108" :authority-type "PI" :name "ABMU Myrddin"}
 
-   "https://fhir.betsic.wales.nhs.uk/Id/central/pas-identifier"
+   "https://fhir.bcuhb.wales.nhs.uk/Id/central/pas-identifier"
    {:authority "109" :authority-type "PI"}
 
-   "https://fhir.betsi.wales.nhs.uk/Id/maelor/pas-identifier"
+   "https://fhir.bcuhb.wales.nhs.uk/Id/maelor/pas-identifier"
    {:authority "110" :authority-type "PI"}
 
-   "https://fhir.betsi.wales.nhs.uk/Id/west/pas-identifier"
+   "https://fhir.bcuhb.wales.nhs.uk/Id/west/pas-identifier"
    {:authority "111" :authority-type "PI"}
 
-   "https://fhir.cwmtaf.wales.nhs.uk/Id/pas-identifier"
+   "https://fhir.ctmuhb.wales.nhs.uk/Id/pas-identifier"
    {:authority "126" :authority-type "PI"}
 
-   "https://fhir.cwmtaf.wales.nhs.uk/Id/north/radiology-identifier"
+   "https://fhir.ctmuhb.wales.nhs.uk/Id/north/radiology-identifier"
    {:authority "127" :authority-type "PI"}
 
-   "https://fhir.cwmtaf.wales.nhs.uk/Id/south/radiology-identifier"
+   "https://fhir.ctmuhb.wales.nhs.uk/Id/south/radiology-identifier"
    {:authority "128" :authority-type "PI"}
 
-   "https://fhir.aneurinbevan.nhs.uk/Id/pas-identifier"
+   "https://fhir.abuhb.nhs.uk/Id/pas-identifier"
    {:authority "139" :authority-type "PI"}
 
-   "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
+   "https://fhir.cavuhb.wales.nhs.uk/Id/pas-identifier"
    {:authority    "140" :authority-type "PI"
     :organization {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48" :value "RWMBV"}}
 
-   "https://fhir.hyweldda.wales.nhs.uk/Id/pas-identifier"
+   "https://fhir.hduhb.wales.nhs.uk/Id/pas-identifier"
    {:authority "149" :authority-type "PI"}
 
-   "https://fhir.trakcare.wales.nhs.uk/Id/identifier"
+   "https://fhir.trak.wales.nhs.uk/Id/identifier"
    {:authority "154" :authority-type "PI"}
 
    "https://fhir.powys.wales.nhs.uk/Id/pas-identifier"
    {:authority "170" :authority-type "PI"}
 
-   "https://fhir.cwmtaf.wales.nhs.uk/Id/radiology-identifier"
+   "https://fhir.ctmuhb.wales.nhs.uk/Id/radiology-identifier"
    {:authority "203" :authority-type "PI"}
    })
 
