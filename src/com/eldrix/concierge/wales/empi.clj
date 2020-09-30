@@ -58,20 +58,20 @@
 
    "https://fhir.cav.wales.nhs.uk/Id/pas-identifier"
    {:authority    "140" :authority-type "PI"
-    :organization {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48" :value "RWMBV"}
+    :organization {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48" :value "RWMBV"}}
 
-    "https://fhir.hyweldda.wales.nhs.uk/Id/pas-identifier"
-                  {:authority "149" :authority-type "PI"}
+   "https://fhir.hyweldda.wales.nhs.uk/Id/pas-identifier"
+   {:authority "149" :authority-type "PI"}
 
-    "https://fhir.trakcare.wales.nhs.uk/Id/identifier"
-                  {:authority "154" :authority-type "PI"}
+   "https://fhir.trakcare.wales.nhs.uk/Id/identifier"
+   {:authority "154" :authority-type "PI"}
 
-    "https://fhir.powys.wales.nhs.uk/Id/pas-identifier"
-                  {:authority "170" :authority-type "PI"}
+   "https://fhir.powys.wales.nhs.uk/Id/pas-identifier"
+   {:authority "170" :authority-type "PI"}
 
-    "https://fhir.cwmtaf.wales.nhs.uk/Id/radiology-identifier"
-                  {:authority "203" :authority-type "PI"}
-    })
+   "https://fhir.cwmtaf.wales.nhs.uk/Id/radiology-identifier"
+   {:authority "203" :authority-type "PI"}
+   })
 
 (def ^:private authority->system
   (zipmap (map :authority (vals authorities)) (keys authorities)))
