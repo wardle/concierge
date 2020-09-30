@@ -16,7 +16,6 @@
            clj-http                       {:mvn/version "2.3.0"}
            compojure                      {:mvn/version "1.6.2"}
            cprop                          {:mvn/version "0.1.17"}
-           http-kit                       {:mvn/version "2.5.0"}
            mount                          {:mvn/version "0.1.16"}
            ring/ring-defaults             {:mvn/version "0.3.2"}
            selmer                         {:mvn/version "1.12.18"}}

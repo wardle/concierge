@@ -72,7 +72,7 @@
   (let [auth-fn (get-in req [:config :external-token-auth-fn])
         auth-header (get-in req [:headers "authorization"])
         token (if auth-header (last (re-find #"(?i)^Bearer (.+)$" auth-header)) nil)]
-    (log/info "external client request:" (:headers req)
+    (log/info "external client request:" (:headers req))
     (when (nil? auth-fn) (throw (ex-info "missing [:config :external-token-auth-fn] in request for external client connection" req)))
     (if-not (auth-fn token)
       (do (log/info "invalid token in request" (:headers req))
@@ -86,15 +86,11 @@
         (log/info "will send message to internal client: " msg)
         (if sent?
           (if-let [result @(s/try-take! result-stream 3000)]
-            {:status  200
-             :headers {"content-type" "application/text"}
-             :body    (:body result)}
-            (do
-              (log/info "failed to get response, or no response within timeout" req)
-              (failed-external-client-request 504 (str "failed to get response or not response within timeout" req))))
+            {:status 200 :headers {"content-type" "application/text"} :body (:body result)}
+            (do (log/info "failed to get response, or no response within timeout" req)
+                (failed-external-client-request 504 (str "failed to get response or not response within timeout" req))))
           (do
-            (log/info "failed to forward req " req)
-            (when-not client (log/info "no connected internal client."))
+            (log/info "failed to forward req " req (when-not client "no connected internal client."))
             (failed-external-client-request 502 (str "failed to forward request to internal client. "))))))))
 
 
@@ -176,21 +172,23 @@
 (defn fake-server [message]
   (println "server got: " message))
 
-(defn- create-jwt-keypair []
-  "Convenvience function to make a pair of JWT tokens at the REPL. Not designed to be used
-  in live programs. Returns a vector of the private key and the public key."
-  (require '[clojure.java.shell])
-  (letfn [(sh! [s] (apply clojure.java.shell/sh (clojure.string/split s #" ")))]
-    ;; generate keys
-    (sh! "openssl ecparam -name prime256v1 -out ecparams.pem")
-    ;; Generate a private key from params file
-    (sh! "openssl ecparam -in ecparams.pem -genkey -noout -out ecprivkey.pem")
-    ;;Generate a public key from private key
-    (sh! "openssl ec -in ecprivkey.pem -pubout -out ecpubkey.pem"))
-  [(buddy.core.keys/private-key "ecprivkey.pem")
-   (buddy.core.keys/public-key "ecpubkey.pem")])
 
 (comment
+
+  (defn- create-jwt-keypair []
+    "Convenience function to make a pair of JWT tokens at the REPL. Not designed to be used
+    in live programs. Returns a vector of the private key and the public key."
+    (require '[clojure.java.shell])
+    (letfn [(sh! [s] (apply clojure.java.shell/sh (clojure.string/split s #" ")))]
+      ;; generate keys
+      (sh! "openssl ecparam -name prime256v1 -out ecparams.pem")
+      ;; Generate a private key from params file
+      (sh! "openssl ecparam -in ecparams.pem -genkey -noout -out ecprivkey.pem")
+      ;;Generate a public key from private key
+      (sh! "openssl ec -in ecprivkey.pem -pubout -out ecpubkey.pem"))
+    [(buddy.core.keys/private-key "ecprivkey.pem")
+     (buddy.core.keys/public-key "ecpubkey.pem")])
+
   (def ec-privkey (buddy.core.keys/private-key "test/resources/ecprivkey.pem"))
   (def ec-pubkey (buddy.core.keys/public-key "test/resources/ecpubkey.pem"))
 

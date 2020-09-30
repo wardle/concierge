@@ -20,7 +20,7 @@
   [valid-token?]
   (let [priv-key (buddy.core.keys/private-key "test/resources/ecprivkey.pem")
         pub-key (buddy.core.keys/public-key "test/resources/ecpubkey.pem")]
-    (with-open [server (connect/run-server 0 pub-key)]
+    (with-open [server (connect/run-server 0 pub-key pub-key)]
       (let [port (aleph.netty/port server)
             url (str "ws://localhost:" port "/ws")
             client @(aleph.http/websocket-client url)
