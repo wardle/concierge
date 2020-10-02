@@ -20,24 +20,30 @@
    {:authority "NHS" :authority-type "NH"}
 
    "https://fhir.wales.nhs.uk/Id/empi-number"               ;; TODO: need to check authority type for empi numbers
-   {:authority "100" :authority-type "PE"}
+   {:authority "100" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.100"}
+
+   "https://fhir.sbuhb.wales.nhs.uk/Id/masterlab"
+   {:authority "102" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.102"}
 
    "https://fhir.sbuhb.wales.nhs.uk/Id/east/pas-identifier"
-   {:authority "103" :authority-type "PE"}
+   {:authority "103" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.103"}
 
    "https://fhir.sbuhb.wales.nhs.uk/Id/west/radiology-identifier"
-   {:authority "104" :authority-type "PE"}
+   {:authority "104" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.104"}
+
+   "https://fhir.sbuhb.wales.nhs.uk/Id/east/radiology-identifier"
+   {:authority "105" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.105"}
 
    "https://fhir.sbuhb.wales.nhs.uk/Id/west/new-radiology-identifier"
    {:authority "106" :authority-type "PE"}
 
    "https://fhir.sbuhb.wales.nhs.uk/Id/pas-identifier"
-   {:authority "108" :authority-type "PI" :name "ABMU Myrddin"}
+   {:authority "108" :authority-type "PI" :name "ABMU Myrddin" :oid "2.16.840.1.113883.2.1.8.1.5.108"}
 
    "https://fhir.bcuhb.wales.nhs.uk/Id/central/pas-identifier"
    {:authority "109" :authority-type "PI"}
 
-   "https://fhir.bcuhb.wales.nhs.uk/Id/maelor/pas-identifier"
+   "https://fhir.bcuhb.wales.nhs.uk/Id/east/pas-identifier"
    {:authority "110" :authority-type "PI"}
 
    "https://fhir.bcuhb.wales.nhs.uk/Id/west/pas-identifier"
@@ -69,8 +75,7 @@
    {:authority "170" :authority-type "PI"}
 
    "https://fhir.ctmuhb.wales.nhs.uk/Id/radiology-identifier"
-   {:authority "203" :authority-type "PI"}
-   })
+   {:authority "203" :authority-type "PI"}})
 
 (def endpoints
   {:live {:url "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx" :processing-id "P"}
