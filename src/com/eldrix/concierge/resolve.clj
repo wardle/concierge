@@ -4,6 +4,7 @@
 (defonce resolvers (atom {}))
 
 (defprotocol Resolver
+  "Resolve a system/value tuple representing a permanent identifier."
   (resolve-id [this system value]))
 
 (defn register-resolver
