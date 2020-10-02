@@ -191,7 +191,7 @@
   (let [sock (atom nil)
         pulse-fn #(a/timeout (or pulse-milliseconds 2000))]
     (loop [pulse (pulse-fn)]
-      (log/info "*client* connection to " url ":" (if (socket-closed? @sock) "closed" "open"))
+      (log/debug "*client* connection to " url ":" (if (socket-closed? @sock) "closed" "open"))
       (when (socket-closed? @sock)
         (log/info "*client* attempting connection to " url)
         (try
