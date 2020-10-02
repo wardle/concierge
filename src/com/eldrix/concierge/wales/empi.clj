@@ -228,18 +228,16 @@
   (resolve-id [this system value] (resolve! system value (merge {:url url :processing-id processing-id} opts))))
 
 (comment
-  (def proxy-host nil)
   (keys authorities)
-  (require '[com.eldrix.concierge.config :as config])
-  (mount/start)
-  (def empi-config (merge (get-in config/root [:wales :empi]) (get-in config/root [:http])))
-  (def req (make-identifier-request "https://fhir.cav.wales.nhs.uk/Id/pas-identifier" "X774755" empi-config))
+  (def live-config {:url (get-in endpoints [:live :url])
+               :processing-id "P"
+               :proxy-host "137.4.60.101"
+               :proxy-port 8080})
+  (def req (make-identifier-request "https://fhir.cavuhb.wales.nhs.uk/Id/pas-identifier" "X774755" live-config))
   (dissoc req :xml)
   (def response (do-post! req))
   (parse-pdq response)
 
   (def fake-response {:status 200
                       :body   (slurp (io/resource "wales-emp-resp-example.xml"))})
-  (parse-pdq fake-response)
-
-  )
+  (parse-pdq fake-response))
