@@ -201,8 +201,8 @@
             (if authorized
               (do (reset! sock client)
                   (s/consume (partial message-dispatcher client) client)
-                  (s/on-closed client #((log/info "*client* websocket closed")
-                                        (a/close! pulse))))
+                  (s/on-closed client #(do (log/info "*client* websocket closed")
+                                           (a/close! pulse))))
               (log/info "*client* failed to open websocket connection to" url)))
           (catch Exception e (log/error "*client* failed to open websocket connection to " url ":" (.getMessage e)))))
       (a/<!! pulse);; wait for a time, or when we get a callback from the channel that it is closed.
