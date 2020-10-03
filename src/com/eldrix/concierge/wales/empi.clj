@@ -35,34 +35,34 @@
    {:authority "105" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.105"}
 
    "https://fhir.sbuhb.wales.nhs.uk/Id/west/new-radiology-identifier"
-   {:authority "106" :authority-type "PE"}
+   {:authority "106" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.106"}
 
    "https://fhir.sbuhb.wales.nhs.uk/Id/pas-identifier"
    {:authority "108" :authority-type "PI" :name "ABMU Myrddin" :oid "2.16.840.1.113883.2.1.8.1.5.108"}
 
    "https://fhir.bcuhb.wales.nhs.uk/Id/central/pas-identifier"
-   {:authority "109" :authority-type "PI"}
+   {:authority "109" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.109"}
 
    "https://fhir.bcuhb.wales.nhs.uk/Id/east/pas-identifier"
-   {:authority "110" :authority-type "PI"}
+   {:authority "110" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.110"}
 
    "https://fhir.bcuhb.wales.nhs.uk/Id/west/pas-identifier"
-   {:authority "111" :authority-type "PI"}
+   {:authority "111" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.111"}
 
    "https://fhir.ctmuhb.wales.nhs.uk/Id/pas-identifier"
-   {:authority "126" :authority-type "PI"}
+   {:authority "126" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.126"}
 
    "https://fhir.ctmuhb.wales.nhs.uk/Id/north/radiology-identifier"
-   {:authority "127" :authority-type "PI"}
+   {:authority "127" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.127"}
 
    "https://fhir.ctmuhb.wales.nhs.uk/Id/south/radiology-identifier"
-   {:authority "128" :authority-type "PI"}
+   {:authority "128" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.128"}
 
    "https://fhir.abuhb.nhs.uk/Id/pas-identifier"
-   {:authority "139" :authority-type "PI"}
+   {:authority "139" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.139"}
 
    "https://fhir.cavuhb.wales.nhs.uk/Id/pas-identifier"
-   {:authority    "140" :authority-type "PI"
+   {:authority    "140" :authority-type "PI"  :oid "2.16.840.1.113883.2.1.8.1.5.140"
     :organization {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48" :value "RWMBV"}}
 
    "https://fhir.hduhb.wales.nhs.uk/Id/pas-identifier"
