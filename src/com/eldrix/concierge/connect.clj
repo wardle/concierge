@@ -5,9 +5,7 @@
 
   The 'connect' internal client connects to the server at '/ws'.
   The external client sends requests and get responses at '/api'.
-
   Both internal and external clients are authenticated using a JWT.
-  DANGER: External client authentication not implemented yet. TODO:add JWT check for external endpoint
 
   The serialisation format for messages uses EDN turned into a string:
   {:message-id xxxx
