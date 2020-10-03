@@ -9,20 +9,20 @@
 
   The serialisation format for messages uses EDN turned into a string:
   {:message-id xxxx
-   :body xxxx}"
+    :body      xxxx}"
   (:require
-   [aleph.http :as http]
-   [buddy.sign.jwt :as jwt]
-   [clojure.string :as str]
-   [clojure.core.async :as a]
-   [clojure.tools.logging.readable :as log]
-   [compojure.core :as compojure :refer [GET POST]]
-   [compojure.route :as route]
-   [manifold.stream :as s]
-   [manifold.deferred :as d]
-   [manifold.bus :as bus]
-   [mount.core :as mount]
-   [ring.middleware.params :as params]))
+    [aleph.http :as http]
+    [buddy.sign.jwt :as jwt]
+    [clojure.string :as str]
+    [clojure.core.async :as a]
+    [clojure.tools.logging.readable :as log]
+    [compojure.core :as compojure :refer [GET POST]]
+    [compojure.route :as route]
+    [manifold.stream :as s]
+    [manifold.deferred :as d]
+    [manifold.bus :as bus]
+    [mount.core :as mount]
+    [ring.middleware.params :as params]))
 
 (defn- jwt-expiry
   "Returns a JWT-compatible expiry (seconds since unix epoch)."
@@ -76,12 +76,12 @@
     (if-not (auth-fn token)
       (do (log/info "*server* invalid token in request" (:headers req))
           (failed-external-client-request 401 "invalid token in request"))
-      (let [msg-id (swap! message-id inc)                        ;; create a 'unique' (for us) identifier
-            result-stream (bus/subscribe from-client msg-id)     ;; register for responses coming back with that identifier
-            body-str (ring.util.request/body-string req)         ;; pass the string of the body along unchanged inside...
-            msg (pr-str {:message-id msg-id :body body-str})     ;; ... of a wrapped message containing the identifier
+      (let [msg-id (swap! message-id inc)                   ;; create a 'unique' (for us) identifier
+            result-stream (bus/subscribe from-client msg-id) ;; register for responses coming back with that identifier
+            body-str (ring.util.request/body-string req)    ;; pass the string of the body along unchanged inside...
+            msg (pr-str {:message-id msg-id :body body-str}) ;; ... of a wrapped message containing the identifier
             client @connected-client-socket
-            sent? (and client @(s/try-put! client msg 3000))]    ;; and send!
+            sent? (and client @(s/try-put! client msg 3000))] ;; and send!
         (log/info "*server* will send message to internal client: " msg)
         (if sent?
           (if-let [result @(s/try-take! result-stream 3000)]
@@ -109,15 +109,14 @@
         auth-fn (get-in req [:config :internal-token-auth-fn])]
     (when (nil? auth-fn) (throw (ex-info "missing [:config :internal-token-auth-fn] in request for internal client connection" req)))
     (d/let-flow
-     [token @(s/try-take! conn timeout)]
-     (if (auth-fn token)
-       (do (log/info "*server* connecting new client " req)
-           (let [[old _] (reset-vals! connected-client-socket conn)] ;; atomically swap values with no race condition
-             (log/info "*server* closing old client: " old)
-             (when old (s/close! old)))
-           (s/consume receive-from-internal conn))
-       (do (log/info "*server* timeout or invalid token received from connection: " conn)
-           (s/close! conn)))))
+      [token @(s/try-take! conn timeout)]
+      (if (auth-fn token)
+        (do (log/info "*server* connecting new client " req)
+            (let [[old _] (reset-vals! connected-client-socket conn)] ;; atomically swap values with no race condition
+              (when old (log/info "*server* closing old client: " old) (s/close! old)))
+            (s/consume receive-from-internal conn))
+        (do (log/info "*server* timeout or invalid token received from connection: " conn)
+            (s/close! conn)))))
   nil)
 
 (defn internal-client-handler
@@ -125,12 +124,12 @@
   connection function specified."
   [req]
   (d/let-flow
-   [conn (d/catch
-          (http/websocket-connection req {:heartbeats {:send-after-idle 60000 :timeout 5000}})
-          (fn [_] nil))]
-   (if conn
-     (connect-to-internal-client req conn)
-     non-websocket-request)))
+    [conn (d/catch
+            (http/websocket-connection req {:heartbeats {:send-after-idle 60000 :timeout 5000}})
+            (fn [_] nil))]
+    (if conn
+      (connect-to-internal-client req conn)
+      non-websocket-request)))
 
 (defn wrap-config [f config]
   (fn [req]
@@ -138,9 +137,9 @@
 
 (defn app-routes [config]
   (-> (compojure/routes
-       (GET "/ws" [] internal-client-handler)
-       (POST "/api" [] external-client-handler)
-       (route/not-found "Not found."))
+        (GET "/ws" [] internal-client-handler)
+        (POST "/api" [] external-client-handler)
+        (route/not-found "Not found."))
       (params/wrap-params)
       (wrap-config config)))
 
@@ -153,9 +152,9 @@
    To wait until it is closed, use (aleph.netty/wait-for-close)."
   [port internal-client-pkey external-client-pkey]
   (let [server (http/start-server
-                (app-routes {:internal-token-auth-fn #(valid-token? % internal-client-pkey)
-                             :external-token-auth-fn #(valid-token? % external-client-pkey)})
-                {:port port})
+                 (app-routes {:internal-token-auth-fn #(valid-token? % internal-client-pkey)
+                              :external-token-auth-fn #(valid-token? % external-client-pkey)})
+                 {:port port})
         actual-port (aleph.netty/port server)]
     (log/info "*server* started server on port " actual-port)
     server))
@@ -203,7 +202,7 @@
                                            (a/close! pulse))))
               (log/info "*client* failed to open websocket connection to" url)))
           (catch Exception e (log/error "*client* failed to open websocket connection to " url ":" (.getMessage e)))))
-      (a/<!! pulse);; wait for a time, or when we get a callback from the channel that it is closed.
+      (a/<!! pulse)                                         ;; wait for a time, or when we get a callback from the channel that it is closed.
       (recur (pulse-fn)))))
 
 (defn fake-client [name sock message]
@@ -239,7 +238,7 @@
 
   (def port 10000)
   (def server (run-server port ec-pubkey ec-pubkey))
-  server 
+  server
   @connected-client-socket
 
   (s/close! @connected-client-socket)
@@ -260,7 +259,6 @@
 
   (def external-token (make-token {:system "some other app"} ec-privkey 30))
   (println external-token)
-
 
   (def timeout-channel (clojure.core.async/timeout 10000))
   (clojure.core.async/thread (clojure.core.async/<!! timeout-channel) (println "Timeout!!!"))
