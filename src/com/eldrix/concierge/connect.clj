@@ -149,7 +149,7 @@
   - internal-client-pkey - public key to use to validate JWT tokens for internal client
   - external-client-pkey - public key to use to validate JWT tokens for external client
    
-   To wait until it is closed, use (aleph.netty/wait-for-close)."
+   To wait until it is closed, use 'wait-for-close'"
   [port internal-client-pkey external-client-pkey]
   (let [server (http/start-server
                  (app-routes {:internal-token-auth-fn #(valid-token? % internal-client-pkey)
@@ -159,6 +159,9 @@
     (log/info "*server* started server on port " actual-port)
     server))
 
+(defn wait-for-close
+  [server]
+  (aleph.netty/wait-for-close server))
 
 (def command-handlers
   {:ping (fn [sock message-id message] (s/put! sock (pr-str (str "pong ping " message-id))))})
