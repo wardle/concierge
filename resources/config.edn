@@ -1,7 +1,11 @@
 {:wales   {:empi {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
                   :processing-id "P"}}
- :connect {:server-port 10000
-           :public-key  "ecpubkey.pem"                      ;; concierge connect JWT credentials for securing client<->server WebSockets channel
-           :private-key "ecprivkey.pem"}
+ :connect {:server-host          "localhost"
+           :server-port          10000
+           ;; concierge connect JWT credentials for securing client<->server WebSockets channel
+           :internal-public-key  "test/resources/ecpubkey.pem"
+           :internal-private-key "test/resources/ecprivkey.pem"
+           ;; concierge connect credentials for securing external clients: TODO: use different key that internal client
+           :external-public-key  "test/resources/ecpubkey.pem"}
  :http    {:proxy-host "137.4.60.101"
            :proxy-port 8080}}
