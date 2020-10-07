@@ -1,6 +1,6 @@
 (ns com.eldrix.concierge.core
   (:require [com.eldrix.concierge.config :as config]
-            [com.eldrix.concierge.resolve :as res]
+            [com.eldrix.concierge.registry :as res]
             [com.eldrix.concierge.connect :as connect]
             [clojure.tools.logging :as log]
             [com.eldrix.concierge.wales.empi :as empi]

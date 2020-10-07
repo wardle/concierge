@@ -1,6 +1,6 @@
 (ns com.eldrix.concierge.wales.empi
   "Integration with the NHS Wales Enterprise Master Patient Index (EMPI) service."
-  (:require [com.eldrix.concierge.resolve :refer [Resolver]]
+  (:require [com.eldrix.concierge.registry :refer [Resolver]]
             [clojure.java.io :as io]
             [clojure.tools.logging :refer [log]]
             [clj-http.client :as client]
@@ -62,7 +62,7 @@
    {:authority "139" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.139"}
 
    "https://fhir.cavuhb.wales.nhs.uk/Id/pas-identifier"
-   {:authority    "140" :authority-type "PI"  :oid "2.16.840.1.113883.2.1.8.1.5.140"
+   {:authority    "140" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.140"
     :organization {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48" :value "RWMBV"}}
 
    "https://fhir.hduhb.wales.nhs.uk/Id/pas-identifier"
@@ -80,13 +80,14 @@
 (def endpoints
   {:live {:url "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx" :processing-id "P"}
    :test {:url "https://mpitest.cymru.nhs.uk/PatientDemographicsQueryWS.asmx" :processing-id "U"}
-   :dev {:url "http://ndc06srvmpidev2.cymru.nhs.uk:23000/PatientDemographicsQueryWS.asmx" :processing-id "T"}})
+   :dev  {:url "http://ndc06srvmpidev2.cymru.nhs.uk:23000/PatientDemographicsQueryWS.asmx" :processing-id "T"}})
 
 (def ^:private authority->system
   (zipmap (map :authority (vals authorities)) (keys authorities)))
 
 (def ^:private gender->gender
-  "The EMPI defines gender as one of M,F, O, U, A or N, as per vcard standard."
+  "The EMPI defines gender as one of M,F, O, U, A or N, as per vcard standard. 
+  This maps to a tuple representing a FHIR administrative gender."
   {"M" {:system "http://hl7.org/fhir/administrative-gender" :value :male}
    "F" {:system "http://hl7.org/fhir/administrative-gender" :value :female}
    "O" {:system "http://hl7.org/fhir/administrative-gender" :value :other}
@@ -149,8 +150,9 @@
        :first-names          (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
        :title                (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)
        :gender               (get gender->gender (zx/xml1-> pid ::hl7/PID.8 zx/text))
-       :telephones           (filter :telephone (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
-                                                        (zx/xml-> pid ::hl7/PID.14 parse-telephone)))
+       :telephones           (filter :telephone
+                                     (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
+                                             (zx/xml-> pid ::hl7/PID.14 parse-telephone)))
        :emails               (filter #(re-matches email-pattern %)
                                      (concat (zx/xml-> pid ::hl7/PID.13 ::hl7/XTN.4 zx/text)
                                              (zx/xml-> pid ::hl7/PID.14 ::hl7/XTN.4 zx/text)))
@@ -171,15 +173,9 @@
             parse-response))
 
 (defn- soap->status
-  [root]
-  (zx/xml1-> root
-             ::soap/Envelope
-             ::soap/Body
-             ::mpi/InvokePatientDemographicsQueryResponse
-             ::hl7/RSP_K21
-             ::hl7/QAK
-             ::hl7/QAK.2
-             zx/text))
+  "Return the status encoded within the response."
+  [root] (zx/xml1-> root ::soap/Envelope ::soap/Body ::mpi/InvokePatientDemographicsQueryResponse
+                    ::hl7/RSP_K21 ::hl7/QAK ::hl7/QAK.2 zx/text))
 
 (defn- parse-pdq
   "Turns a HTTP HL7 PDQ response into a well-structured map."
@@ -230,14 +226,16 @@
 
 (deftype EmpiService [url processing-id opts]
   Resolver
-  (resolve-id [this system value] (resolve! system value (merge {:url url :processing-id processing-id} opts))))
+  (resolve-id [this system value]
+    (resolve! system value (merge {:url url :processing-id processing-id} opts))))
 
 (comment
   (keys authorities)
-  (def live-config {:url (get-in endpoints [:live :url])
-               :processing-id "P"
-               :proxy-host "137.4.60.101"
-               :proxy-port 8080})
+  (def live-config
+    {:url           (get-in endpoints [:live :url])
+     :processing-id "P"
+     :proxy-host    "137.4.60.101"
+     :proxy-port    8080})
   (def req (make-identifier-request "https://fhir.cavuhb.wales.nhs.uk/Id/pas-identifier" "X774755" live-config))
   (dissoc req :xml)
   (def response (do-post! req))
