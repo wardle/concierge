@@ -2,8 +2,7 @@
   "Integration with NHS Wales' active directory for authentication and user lookup."
   (:require [clojure.java.io :as io]
             [clojure.tools.logging.readable :as log]
-            [com.eldrix.concierge.config :as config]
-            [com.eldrix.concierge.registry :as registry])
+            [com.eldrix.concierge.config :as config])
   (:import (com.eldrix.concierge.registry Resolver FreetextSearcher StructuredSearcher)
            (com.unboundid.ldap.sdk LDAPConnectionPool LDAPConnection LDAPBindException LDAPConnectionOptions
                                    SearchRequest SearchScope Filter Attribute)

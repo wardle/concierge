@@ -2,19 +2,24 @@
   (:require [com.eldrix.concierge.config :as config]
             [com.eldrix.concierge.registry :as res]
             [com.eldrix.concierge.connect :as connect]
-            [clojure.tools.logging :as log]
             [com.eldrix.concierge.wales.empi :as empi]
+            [com.eldrix.concierge.wales.nadex :as nadex]
+            [clojure.tools.logging.readable :as log]
             [mount.core :as mount]
             [clojure.string :as str])
   (:gen-class))
 
-(defn register-wales-empi
+(defn register-resolvers
   "Registers all of the supported namespaces from the EMPI against the resolver."
-  [opts]
-  (let [{:keys [url processing-id] :as all} (get-in opts [:wales :empi])
-        empi-svc (empi/->EmpiService url processing-id all)]
-    (doseq [uri (keys empi/authorities)] (res/register-resolver uri empi-svc))))
+  []
+  ;; register all known EMPI authorities
+  (let [empi-svc (empi/->EmpiService)]
+    (doseq [uri (keys empi/authorities)] (res/register-resolver uri empi-svc)))
 
+  ;; register NADEX directory lookup
+  (let [nadex-svc (nadex/->NadexService (config/nadex-default-bind-username) (config/nadex-default-bind-password))]
+    (res/register-resolver "https://fhir.nhs.wales/Id/cymru-user-id" nadex-svc)
+    (res/register-freetext-searcher "https://fhir.nhs.wales/Id/cymru-user-id" nadex-svc)))
 
 (defn run-connect-client
   [_]
@@ -56,7 +61,6 @@
 (comment
   (mount/start)
   (-main "connect-server")
-  (register-wales-empi config/root)
-  (str/lower-case nil)
+  (register-resolvers)
   (res/log-status)
   (res/resolve-identifier "https://fhir.ctmuhb.wales.nhs.uk/Id/pas-identifier" "wibble"))
