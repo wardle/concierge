@@ -1,14 +1,17 @@
 (ns com.eldrix.concierge.wales.empi
   "Integration with the NHS Wales Enterprise Master Patient Index (EMPI) service."
-  (:require [com.eldrix.concierge.registry :refer [Resolver]]
-            [clojure.java.io :as io]
-            [clojure.tools.logging :refer [log]]
-            [clj-http.client :as client]
-            [selmer.parser]
-            [clojure.data.xml :as xml]
-            [clojure.zip :as zip]
-            [clojure.data.zip.xml :as zx]
-            [clojure.tools.logging :as log]))
+  (:require
+    [com.eldrix.concierge.registry :refer [Resolver]]
+    [com.eldrix.concierge.uri :refer [namespaces]]
+    [clojure.java.io :as io]
+    [clojure.tools.logging :refer [log]]
+    [clj-http.client :as client]
+    [selmer.parser]
+    [clojure.data.xml :as xml]
+    [clojure.zip :as zip]
+    [clojure.data.zip.xml :as zx]
+    [clojure.tools.logging :as log]
+    [com.eldrix.concierge.config :as config]))
 
 
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
@@ -16,77 +19,81 @@
 (xml/alias-uri :hl7 "urn:hl7-org:v2xml")
 
 (def authorities
-  {"https://fhir.nhs.uk/Id/nhs-number"
+  {:uk.nhs.id/nhs-number
    {:authority "NHS" :authority-type "NH"}
 
-   "https://fhir.wales.nhs.uk/Id/empi-number"               ;; TODO: need to check authority type for empi numbers
+   :wales.nhs.id/empi-number                                ;; TODO: need to check authority type for empi numbers
    {:authority "100" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.100"}
 
-   "https://fhir.sbuhb.wales.nhs.uk/Id/masterlab"
+   :wales.nhs.sbuhb.id/masterlab
    {:authority "102" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.102"}
 
-   "https://fhir.sbuhb.wales.nhs.uk/Id/east/pas-identifier"
+   :wales.nhs.sbuhb.id/east-pas-identifier
    {:authority "103" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.103"}
 
-   "https://fhir.sbuhb.wales.nhs.uk/Id/west/radiology-identifier"
+   :wales.nhs.sbuhb.id/west-radiology-identifier
    {:authority "104" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.104"}
 
-   "https://fhir.sbuhb.wales.nhs.uk/Id/east/radiology-identifier"
+   :wales.nhs.sbuhb.id/east-radiology-identifier
    {:authority "105" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.105"}
 
-   "https://fhir.sbuhb.wales.nhs.uk/Id/west/new-radiology-identifier"
+   :wales.nhs.sbuhb.id/new-west-radiology-identifier
    {:authority "106" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.106"}
 
-   "https://fhir.sbuhb.wales.nhs.uk/Id/pas-identifier"
+   :wales.nhs.sbuhb.id/pas-identifier
    {:authority "108" :authority-type "PI" :name "ABMU Myrddin" :oid "2.16.840.1.113883.2.1.8.1.5.108"}
 
-   "https://fhir.bcuhb.wales.nhs.uk/Id/central/pas-identifier"
+   :wales.nhs.bcuhb.id/central-pas-identifier
    {:authority "109" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.109"}
 
-   "https://fhir.bcuhb.wales.nhs.uk/Id/east/pas-identifier"
+   :wales.nhs.bcuhb.id/east-pas-identifier
    {:authority "110" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.110"}
 
-   "https://fhir.bcuhb.wales.nhs.uk/Id/west/pas-identifier"
+   :wales.nhs.bcuhb.id/west-pas-identifier
    {:authority "111" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.111"}
 
-   "https://fhir.ctmuhb.wales.nhs.uk/Id/pas-identifier"
+   :wales.nhs.ctmuhb.id/pas-identifier
    {:authority "126" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.126"}
 
-   "https://fhir.ctmuhb.wales.nhs.uk/Id/north/radiology-identifier"
+   :wales.nhs.ctmuhb.id/north-radiology-identifier
    {:authority "127" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.127"}
 
-   "https://fhir.ctmuhb.wales.nhs.uk/Id/south/radiology-identifier"
+   :wales.nhs.ctmuhb.id/south-radiology-identifier
    {:authority "128" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.128"}
 
-   "https://fhir.abuhb.nhs.uk/Id/pas-identifier"
+   :wales.nhs.abuhb.id/radiology-identifier
+   {:authority "133" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.3.133"}
+
+   :wales.nhs.abuhb.id/pas-identifier
    {:authority "139" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.139"}
 
-   "https://fhir.cavuhb.wales.nhs.uk/Id/pas-identifier"
+   :wales.nhs.cavuhb.id/pas-identifier
    {:authority    "140" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.140"
     :organization {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48" :value "RWMBV"}}
 
-   "https://fhir.hduhb.wales.nhs.uk/Id/pas-identifier"
+   :wales.nhs.hduhb.id/pas-identifier
    {:authority "149" :authority-type "PI"}
 
-   "https://fhir.trak.wales.nhs.uk/Id/identifier"
+   :wales.nhs.trak.id/identifier
    {:authority "154" :authority-type "PI"}
 
-   "https://fhir.powys.wales.nhs.uk/Id/pas-identifier"
+   :wales.nhs.powys.id/pas-identifier
    {:authority "170" :authority-type "PI"}
 
-   "https://fhir.ctmuhb.wales.nhs.uk/Id/radiology-identifier"
+   :wales.nhs.ctmuhb.id/radiology-identifier
    {:authority "203" :authority-type "PI"}})
 
-(def endpoints
-  {:live {:url "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx" :processing-id "P"}
-   :test {:url "https://mpitest.cymru.nhs.uk/PatientDemographicsQueryWS.asmx" :processing-id "U"}
-   :dev  {:url "http://ndc06srvmpidev2.cymru.nhs.uk:23000/PatientDemographicsQueryWS.asmx" :processing-id "T"}})
-
 (def ^:private authority->system
-  (zipmap (map :authority (vals authorities)) (keys authorities)))
+  (zipmap (map :authority (vals authorities))
+          (map #(let [v (get namespaces %)]
+                  (if v v (throw (IllegalStateException. (str "missing URI for " %))))) (keys authorities))))
+
+(def ^:private system->authority
+  (zipmap (map #(get namespaces %) (keys authorities))
+          (vals authorities)))
 
 (def ^:private gender->gender
-  "The EMPI defines gender as one of M,F, O, U, A or N, as per vcard standard. 
+  "The EMPI defines gender as one of M,F, O, U, A or N, as per vcard standard.
   This maps to a tuple representing a FHIR administrative gender."
   {"M" {:system "http://hl7.org/fhir/administrative-gender" :value :male}
    "F" {:system "http://hl7.org/fhir/administrative-gender" :value :female}
@@ -98,7 +105,7 @@
   "An EMPI compatible DateTimeFormatter; immutable and thread safe."
   (java.time.format.DateTimeFormatter/ofPattern "yyyyMMddHHmmss"))
 
-(def ^:private default-request
+(defn ^:private default-request []
   {:sending-application   221
    :sending-facility      221
    :receiving-application 100
@@ -110,14 +117,13 @@
    :url                   nil
    :processing-id         nil
    :date-time             (.format dtf (java.time.LocalDateTime/now))
-   :message-control-id    (java.util.UUID/randomUUID)
-   })
+   :message-control-id    (java.util.UUID/randomUUID)})
 
-(defn- config []
-  {:url           (get-in config [:wales :empi :url])
-   :processing-id (get-in config [:wales :empi :processing-id])
-   :proxy-host    (get-in config [:http :proxy-host])
-   :proxy-port    (get-in config [:http :proxy-port])})
+(defn- get-config []
+  (merge
+    {:url           (config/empi-url)
+     :processing-id (config/empi-processing-id)}
+    (config/http-proxy)))
 
 (defn- empi-date->map
   "Parse a date in format `yyyyMMddHHmmss` from string `s` into a map with the specified key `k`.
@@ -204,43 +210,42 @@
 (defn- make-identifier-request
   "Creates a request for an identifier search."
   [authority identifier params]
-  (let [req (merge default-request
+  (let [req (merge (default-request)
                    params
-                   (or (get authorities authority) {:authority authority})
+                   (or (system->authority authority) (do (log/warn "unknown authority in request:" authority) {:authority authority :authority-type "PI"}))
                    {:identifier identifier})
         body (selmer.parser/render-file (io/resource "wales-empi-req.xml") req)]
     (assoc req :xml body)))
 
 (defn resolve!
-  "Performs an EMPI fetch using the identifier as defined by `system` and `value` and
-  the defined configuration.
+  "Performs an EMPI fetch using the identifier as defined by `system` and `value`"
+  [system value]
+  (let [result (-> (make-identifier-request system value (get-config))
+                   (do-post!)
+                   (parse-pdq))]
+    (log/info "empi result" result)
+    result))
 
-  - url : the URL of the EMPI endpoint
-  - processing-id : one of P (production) U (testing) or T (development) for type of server.
-  - proxy-host : if required, proxy hostname as per clj-http
-  - proxy-port : if required, proxy port as per clj-http"
-  [system value {:keys [url processing-id proxy-host proxy-port] :as opts}]
-  (-> (make-identifier-request system value opts)
-      (do-post!)
-      (parse-pdq)))
-
-(deftype EmpiService [url processing-id opts]
+(deftype EmpiService []
   Resolver
   (resolve-id [this system value]
-    (resolve! system value (merge {:url url :processing-id processing-id} opts))))
+    (resolve! system value)))
 
 (comment
   (keys authorities)
-  (def live-config
-    {:url           (get-in endpoints [:live :url])
-     :processing-id "P"
-     :proxy-host    "137.4.60.101"
-     :proxy-port    8080})
-  (def req (make-identifier-request "https://fhir.cavuhb.wales.nhs.uk/Id/pas-identifier" "X774755" live-config))
+  (mount.core/start-with-args {:profile :live})
+  (mount.core/stop)
+  (get-config)
+  (def req (make-identifier-request "https://fhir.cavuhb.nhs.wales/Id/pas-identifier" "X774755" (get-config)))
   (dissoc req :xml)
   (def response (do-post! req))
   (parse-pdq response)
 
+  (resolve! "https://fhir.cavuhb.nhs.wales/Id/pas-identifier" "X774755")
+  (resolve! "140" "X774755")
+
   (def fake-response {:status 200
                       :body   (slurp (io/resource "wales-emp-resp-example.xml"))})
   (parse-pdq fake-response))
+
+

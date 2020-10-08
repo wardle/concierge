@@ -1,14 +1,14 @@
 (ns com.eldrix.concierge.wales.nadex
   "Integration with NHS Wales' active directory for authentication and user lookup."
-  (:require
-    [clojure.java.io :as io]
-    [com.eldrix.concierge.registry :as registry])
-  (:import
-    (com.eldrix.concierge.registry Resolver FreetextSearcher StructuredSearcher)
-    (com.unboundid.ldap.sdk LDAPConnectionPool LDAPConnection LDAPBindException LDAPConnectionOptions
-                            SearchRequest SearchScope Filter Attribute)
-    (com.unboundid.util.ssl TrustAllTrustManager SSLUtil)
-    (java.util Collection)))
+  (:require [clojure.java.io :as io]
+            [clojure.tools.logging.readable :as log]
+            [com.eldrix.concierge.config :as config]
+            [com.eldrix.concierge.registry :as registry])
+  (:import (com.eldrix.concierge.registry Resolver FreetextSearcher StructuredSearcher)
+           (com.unboundid.ldap.sdk LDAPConnectionPool LDAPConnection LDAPBindException LDAPConnectionOptions
+                                   SearchRequest SearchScope Filter Attribute)
+           (com.unboundid.util.ssl TrustAllTrustManager SSLUtil)
+           (java.util Collection)))
 
 ;; Unfortunately, the CYMRU domain uses a self-signed certificate. Alternatives would be to
 ;; use a custom keystore or downgrade to using a non-encrypted channel of communication.
@@ -24,10 +24,10 @@
     "cymru.nhs.uk"
     636))
 
-(def connection-pool-size 5)
-
 (defonce ^LDAPConnectionPool connection-pool
-         (delay (LDAPConnectionPool. (make-unauthenticated-connection) connection-pool-size)))
+         (delay
+           (log/info "creating LDAP connection pool; size:" (config/nadex-connection-pool-size))
+           (LDAPConnectionPool. (make-unauthenticated-connection) (config/nadex-connection-pool-size))))
 
 (defn can-authenticate?
   "Can the user 'username' authenticate using the 'password' specified?"
@@ -74,6 +74,7 @@
    credentials and the 'filter' specified."
   ([username password] (search username password (by-username username)))
   ([bind-username bind-password ^Filter search-filter]
+   (log/info "ldap bind with username " bind-username "filter:" (.toNormalizedString search-filter))
    (with-open [c (.getConnection @connection-pool)]
      (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
      (let [results (.search c (SearchRequest.
@@ -95,6 +96,11 @@
     (search username password (by-name value))))
 
 (comment
-
+  (mount.core/start)
+  (mount.core/stop)
+  (def bind-username (config/nadex-default-bind-username))
+  (def bind-password (config/nadex-default-bind-password))
+  (can-authenticate? bind-username bind-password)
+  (search bind-username bind-password (by-username "ma090906"))
   )
 
