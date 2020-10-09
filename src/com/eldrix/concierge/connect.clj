@@ -11,22 +11,25 @@
   {:message-id xxxx
     :body      xxxx}"
   (:require
-    [aleph.http :as http]
-    [buddy.sign.jwt :as jwt]
-    [clojure.string :as str]
-    [clojure.spec.alpha :as s]
-    [clojure.core.async :as a]
-    [clojure.tools.logging.readable :as log]
-    [compojure.core :as compojure :refer [GET POST]]
-    [compojure.route :as route]
-    [manifold.stream :as stream]
-    [manifold.deferred :as d]
-    [manifold.bus :as bus]
-    [mount.core :as mount]
-    [ring.middleware.params :as params])
+   [aleph.http :as http]
+   [aleph.netty]
+   [buddy.core.keys :as keys]
+   [buddy.sign.jwt :as jwt]
+   [clojure.edn :as edn]
+   [clojure.string :as str]
+   [clojure.spec.alpha :as s]
+   [clojure.core.async :as a]
+   [clojure.tools.logging.readable :as log]
+   [compojure.core :as compojure :refer [GET POST]]
+   [compojure.route :as route]
+   [manifold.stream :as stream]
+   [manifold.deferred :as d]
+   [manifold.bus :as bus]
+   [ring.middleware.params :as params]
+   [ring.util.request])
   (:import (io.netty.channel ChannelPipeline ChannelHandler)
            (java.net InetSocketAddress)
-           (io.netty.handler.proxy Socks5ProxyHandler)))
+           (io.netty.handler.proxy HttpProxyHandler)))
 
 
 (defn- jwt-expiry
@@ -42,7 +45,7 @@
   "Returns the information from the token or nil if invalid using the public key specified."
   ([token pKey]
    (try (if token (jwt/unsign token pKey {:alg :es256}) nil)
-        (catch Exception e nil))))
+        (catch Exception _ nil))))
 
 (def ^:private non-websocket-request
   "Response returned if there is a failure in handshake while setting up websocket."
@@ -99,7 +102,7 @@
 
 (defn receive-from-internal
   [m]
-  (let [m2 (clojure.edn/read-string m)]
+  (let [m2 (edn/read-string m)]
     (log/info "*server* received message back from client:" m2)
     (bus/publish! from-client (:message-id m2) m2)))
 
@@ -175,7 +178,7 @@
   (aleph.netty/wait-for-close server))
 
 (def command-handlers
-  {:ping (fn [sock message-id message] (stream/put! sock (pr-str (str "pong ping " message-id))))})
+  {:ping (fn [sock message-id message] (stream/put! sock (pr-str (str "pong ping " message-id message))))})
 
 (defn message-dispatcher
   "Run when we receive a message from the 'connect' server."
@@ -206,7 +209,7 @@
            retry-milliseconds timeout-milliseconds ^String proxy-host proxy-port] :as opts}]
   {:pre [(s/assert (s/keys :req-un [::server-host ::server-port ::internal-client-private-key]
                            :opt-un [::proxy-host ::proxy-port ::retry-milliseconds ::timeout-milliseconds]) opts)]}
-  (let [url (str "ws://" server-host ":" server-port "/ws")
+  (let [url (str "wss://" server-host ":" server-port "/ws")
         sock (atom nil)
         retry-fn #(a/timeout (or retry-milliseconds 2000))
         timeout (or timeout-milliseconds 5000)]
@@ -221,7 +224,7 @@
                                                  (when (and proxy-host proxy-port)
                                                    {:pipeline-transform
                                                     (fn [^ChannelPipeline channel-pipeline]
-                                                      (.addFirst channel-pipeline (into-array ChannelHandler [(Socks5ProxyHandler. (InetSocketAddress. proxy-host proxy-port))])))})))
+                                                      (.addFirst channel-pipeline (into-array ChannelHandler [(HttpProxyHandler. (InetSocketAddress. proxy-host proxy-port))])))})))
                 token (make-token {:system "concierge"} internal-client-private-key)
                 authorized @(stream/put! client token)]
             (if authorized
@@ -250,9 +253,10 @@
 (comment
   (s/check-asserts true)
 
-  (defn- create-jwt-keypair []
+  (defn- create-jwt-keypair 
     "Convenience function to make a pair of JWT tokens at the REPL. Not designed to be used
     in live programs. Returns a vector of the private key and the public key."
+    []
     (require '[clojure.java.shell])
     (letfn [(sh! [s] (apply clojure.java.shell/sh (clojure.string/split s #" ")))]
       ;; generate keys
@@ -261,11 +265,11 @@
       (sh! "openssl ecparam -in ecparams.pem -genkey -noout -out ecprivkey.pem")
       ;;Generate a public key from private key
       (sh! "openssl ec -in ecprivkey.pem -pubout -out ecpubkey.pem"))
-    [(buddy.core.keys/private-key "ecprivkey.pem")
-     (buddy.core.keys/public-key "ecpubkey.pem")])
+    [(keys/private-key "ecprivkey.pem")
+     (keys/public-key "ecpubkey.pem")])
 
-  (def ec-privkey (buddy.core.keys/private-key "test/resources/ecprivkey.pem"))
-  (def ec-pubkey (buddy.core.keys/public-key "test/resources/ecpubkey.pem"))
+  (def ec-privkey (keys/private-key "test/resources/ecprivkey.pem"))
+  (def ec-pubkey (keys/public-key "test/resources/ecpubkey.pem"))
 
   (def port 10000)
   (def server (run-server {:server-port                port
