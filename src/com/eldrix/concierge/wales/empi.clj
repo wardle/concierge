@@ -26,16 +26,16 @@
    {:authority "102" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.102"}
 
    "https://fhir.sbuhb.nhs.wales/Id/east-pas-identifier"
-   {:authority "103" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.103"}
+   {:authority "103" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.103"}
 
    "https://fhir.sbuhb.nhs.wales/Id/west-radiology-idenfifier"
-   {:authority "104" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.104"}
+   {:authority "104" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.104"}
 
    "https://fhir.sbuhb.nhs.wales/Id/east-radiology-identifier"
-   {:authority "105" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.105"}
+   {:authority "105" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.105"}
 
    "https://fhir.sbuhb.nhs.wales/Id/new-west-radiology-idenfifier"
-   {:authority "106" :authority-type "PE" :oid "2.16.840.1.113883.2.1.8.1.5.106"}
+   {:authority "106" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.106"}
 
    "https://fhir.sbuhb.nhs.wales/Id/pas-identifier"
    {:authority "108" :authority-type "PI" :name "ABMU Myrddin" :oid "2.16.840.1.113883.2.1.8.1.5.108"}
@@ -215,7 +215,7 @@
   [authority identifier params]
   (let [req (merge (default-request)
                    params
-                   (or (get authorities authority) (do (log/warn "unknown authority in request:" authority) {:authority authority :authority-type "PI"}))
+                   (or (get authorities authority) (do (log/debug "unknown authority in request:" authority) {:authority authority :authority-type "PI"}))
                    {:identifier identifier})
         body (selmer.parser/render-file (io/resource "wales-empi-req.xml") req)]
     (assoc req :xml body)))
