@@ -29,6 +29,10 @@
 (defn empi-processing-id []
   (get-in root [:wales :empi :processing-id]))
 
+(defn concierge-connect-config []
+  (get-in root [:concierge :connect]))
+
+
 (comment
   (mount/start-with-args {:profile :live})
   (mount/stop)

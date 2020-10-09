@@ -6,8 +6,11 @@
             [com.eldrix.concierge.wales.nadex :as nadex]
             [clojure.tools.logging.readable :as log]
             [mount.core :as mount]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojure.spec.alpha :as s])
   (:gen-class))
+
+(s/check-asserts true)
 
 (defn register-resolvers
   "Registers all of the supported namespaces from the EMPI against the resolver."
@@ -23,21 +26,22 @@
 
 (defn run-connect-client
   [_]
-  (let [hostname (get-in config/root [:connect :server-host])
-        port (get-in config/root [:connect :server-port])
-        url (str "ws://" hostname ":" port "/ws")
-        private-key (get-in config/root [:connect :internal-private-key])]
-    (log/info "running client to " url)
+  (let [opts (config/concierge-connect-config)]
+    (log/info "running client to " (:server-host opts))
     (connect/run-client
-      url
-      (buddy.core.keys/private-key private-key))))
+      (merge
+        (config/https-proxy)
+        {:server-host                 (:server-host opts)
+         :server-port                 (:server-port opts)
+         :internal-client-private-key (buddy.core.keys/private-key (:internal-client-private-key opts))}))))
 
 (defn run-connect-server
   [_]
-  (let [port (get-in config/root [:connect :server-port])
-        internal-public-key (when-let [f (get-in config/root [:connect :internal-public-key])] (buddy.core.keys/public-key f))
-        external-public-key (when-let [f (get-in config/root [:connect :external-public-key])] (buddy.core.keys/public-key f))
-        server (connect/run-server port internal-public-key external-public-key)]
+  (let [opts (config/concierge-connect-config)
+        server (connect/run-server
+                 {:server-port                (:server-port opts)
+                  :internal-client-public-key (buddy.core.keys/public-key (:internal-client-public-key opts))
+                  :external-client-public-key (buddy.core.keys/public-key (:external-client-public-key opts))})]
     (when server (connect/wait-for-close server))))
 
 (def commands
@@ -53,8 +57,8 @@
     (if command-fn
       (do
         (log/info "starting concierge with command:" command)
-        (mount/start)
-        (log/info "configuration:" config/root)
+        (mount/start-with-args {:profile :live})
+        (log/info "configuration:" (dissoc config/root :secrets))
         (command-fn (rest args)))
       (log/error "invalid command. usage: 'concierge <command>'"))))
 

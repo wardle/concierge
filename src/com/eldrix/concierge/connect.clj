@@ -14,15 +14,20 @@
     [aleph.http :as http]
     [buddy.sign.jwt :as jwt]
     [clojure.string :as str]
+    [clojure.spec.alpha :as s]
     [clojure.core.async :as a]
     [clojure.tools.logging.readable :as log]
     [compojure.core :as compojure :refer [GET POST]]
     [compojure.route :as route]
-    [manifold.stream :as s]
+    [manifold.stream :as stream]
     [manifold.deferred :as d]
     [manifold.bus :as bus]
     [mount.core :as mount]
-    [ring.middleware.params :as params]))
+    [ring.middleware.params :as params])
+  (:import (io.netty.channel ChannelPipeline ChannelHandler)
+           (java.net InetSocketAddress)
+           (io.netty.handler.proxy Socks5ProxyHandler)))
+
 
 (defn- jwt-expiry
   "Returns a JWT-compatible expiry (seconds since unix epoch)."
@@ -81,10 +86,10 @@
             body-str (ring.util.request/body-string req)    ;; pass the string of the body along unchanged inside...
             msg (pr-str {:message-id msg-id :body body-str}) ;; ... of a wrapped message containing the identifier
             client @connected-client-socket
-            sent? (and client @(s/try-put! client msg 3000))] ;; and send!
+            sent? (and client @(stream/try-put! client msg 3000))] ;; and send!
         (log/info "*server* will send message to internal client: " msg)
         (if sent?
-          (if-let [result @(s/try-take! result-stream 3000)]
+          (if-let [result @(stream/try-take! result-stream 3000)]
             {:status 200 :headers {"content-type" "application/text"} :body (:body result)}
             (do (log/info "*server* failed to get response, or no response within timeout" req)
                 (failed-external-client-request 504 (str "failed to get response or not response within timeout" req))))
@@ -105,18 +110,18 @@
   Only a single client is permitted and this is enforced; the most recent client connection will be used."
   [req conn]
   (log/info "*server* received new ws client connection attempt... awaiting token")
-  (let [timeout (or (get-in req [:config :timeout-milliseconds]) 5000)
+  (let [timeout (get-in req [:config :timeout-milliseconds])
         auth-fn (get-in req [:config :internal-token-auth-fn])]
     (when (nil? auth-fn) (throw (ex-info "missing [:config :internal-token-auth-fn] in request for internal client connection" req)))
     (d/let-flow
-      [token @(s/try-take! conn timeout)]
+      [token @(stream/try-take! conn timeout)]
       (if (auth-fn token)
-        (do (log/info "*server* connecting new client " req)
+        (do (log/info "*server* connecting new client " (select-keys req [:remote-addr :headers :server-port]))
             (let [[old _] (reset-vals! connected-client-socket conn)] ;; atomically swap values with no race condition
-              (when old (log/info "*server* closing old client: " old) (s/close! old)))
-            (s/consume receive-from-internal conn))
+              (when old (log/info "*server* closing old client: " old) (stream/close! old)))
+            (stream/consume receive-from-internal conn))
         (do (log/info "*server* timeout or invalid token received from connection: " conn)
-            (s/close! conn)))))
+            (stream/close! conn)))))
   nil)
 
 (defn internal-client-handler
@@ -144,17 +149,23 @@
       (wrap-config config)))
 
 (defn run-server
-  "Runs a 'connect' server. 
-  - port - port on which to run server, or random if zero
-  - internal-client-pkey - public key to use to validate JWT tokens for internal client
-  - external-client-pkey - public key to use to validate JWT tokens for external client
-   
+  "Runs a 'connect' server with the configuration as specified:
+  - server-port - port on which to run server, or random if zero
+  - internal-client-public-key - public key to use to validate JWT tokens for internal client
+  - external-client-public-key - public key to use to validate JWT tokens for external client
+  - timeout-milliseconds - timeout to use, optional, with default 5000.
+
    To wait until it is closed, use 'wait-for-close'"
-  [port internal-client-pkey external-client-pkey]
+  [{:keys [server-port internal-client-public-key external-client-public-key timeout-milliseconds] :as config}]
+  {:pre [(s/assert (s/keys :req-un [::server-port ::internal-client-public-key ::external-client-public-key]
+                           :opt-un [::timeout-milliseconds]) config)]}
+  (when (= internal-client-public-key external-client-public-key)
+    (log/warn "*server* WARNING: using same public key for both internal and external clients"))
   (let [server (http/start-server
-                 (app-routes {:internal-token-auth-fn #(valid-token? % internal-client-pkey)
-                              :external-token-auth-fn #(valid-token? % external-client-pkey)})
-                 {:port port})
+                 (app-routes {:timeout-milliseconds   (or timeout-milliseconds 5000)
+                              :internal-token-auth-fn #(valid-token? % internal-client-public-key)
+                              :external-token-auth-fn #(valid-token? % external-client-public-key)})
+                 {:port server-port})
         actual-port (aleph.netty/port server)]
     (log/info "*server* started server on port " actual-port)
     server))
@@ -164,7 +175,7 @@
   (aleph.netty/wait-for-close server))
 
 (def command-handlers
-  {:ping (fn [sock message-id message] (s/put! sock (pr-str (str "pong ping " message-id))))})
+  {:ping (fn [sock message-id message] (stream/put! sock (pr-str (str "pong ping " message-id))))})
 
 (defn message-dispatcher
   "Run when we receive a message from the 'connect' server."
@@ -179,34 +190,50 @@
 
 (defn- socket-closed?
   [sock]
-  (or (not sock) (s/closed? sock)))
-
+  (or (not sock) (stream/closed? sock)))
 
 (defn run-client
   "Runs a 'connect' client, monitoring the connection and restarting if closed. This method will not return.
-   - url - url of the 'client' server (e.g. ws://localhost:8080 )
-   - pkey - private key to generate authorisation tokens.
-   - pulse-milliseconds - pulse interval in milliseconds"
-  [url pkey & {:keys [pulse-milliseconds] :as opts}]
-  (let [sock (atom nil)
-        pulse-fn #(a/timeout (or pulse-milliseconds 2000))]
-    (loop [pulse (pulse-fn)]
-      (log/debug "*client* connection to " url ":" (if (socket-closed? @sock) "closed" "open"))
+  Configuration options are:
+   - server-host - hostname of the server
+   - server-port - port of the server
+   - proxy-host - hostname of proxy, if needed
+   - proxy-port - port of proxy, if needed.
+   - internal-client-private-key - private key to generate authorisation tokens.
+   - retry-milliseconds - retry interval in milliseconds, optional, default 2000ms
+   - timeout-milliseconds - timeout for heartbeat checks, optional, default 5000ms."
+  [{:keys [server-host server-port internal-client-private-key
+           retry-milliseconds timeout-milliseconds ^String proxy-host proxy-port] :as opts}]
+  {:pre [(s/assert (s/keys :req-un [::server-host ::server-port ::internal-client-private-key]
+                           :opt-un [::proxy-host ::proxy-port ::retry-milliseconds ::timeout-milliseconds]) opts)]}
+  (let [url (str "ws://" server-host ":" server-port "/ws")
+        sock (atom nil)
+        retry-fn #(a/timeout (or retry-milliseconds 2000))
+        timeout (or timeout-milliseconds 5000)]
+    (loop [retry (retry-fn)]
+      (log/debug "*client* checking connection to " url ":" (if (socket-closed? @sock) "closed" "open"))
       (when (socket-closed? @sock)
-        (log/info "*client* attempting connection to " url)
+        (log/info "*client* attempting connection " (dissoc opts :internal-client-private-key))
         (try
-          (let [client @(http/websocket-client url {:heartbeats {:send-after-idle 2000 :timeout 5000}})
-                token (make-token {:system "concierge"} pkey)
-                authorized @(s/put! client token)]
+          (let [client @(http/websocket-client url
+                                               (merge
+                                                 {:heartbeats {:send-after-idle 2000 :timeout timeout}}
+                                                 (when (and proxy-host proxy-port)
+                                                   {:pipeline-transform
+                                                    (fn [^ChannelPipeline channel-pipeline]
+                                                      (.addFirst channel-pipeline (into-array ChannelHandler [(Socks5ProxyHandler. (InetSocketAddress. proxy-host proxy-port))])))})))
+                token (make-token {:system "concierge"} internal-client-private-key)
+                authorized @(stream/put! client token)]
             (if authorized
-              (do (reset! sock client)
-                  (s/consume (partial message-dispatcher client) client)
-                  (s/on-closed client #(do (log/info "*client* websocket closed")
-                                           (a/close! pulse))))
-              (log/info "*client* failed to open websocket connection to" url)))
-          (catch Exception e (log/error "*client* failed to open websocket connection to " url ":" (.getMessage e)))))
-      (a/<!! pulse)                                         ;; wait for a time, or when we get a callback from the channel that it is closed.
-      (recur (pulse-fn)))))
+              (do (log/info "*client* successfully connected")
+                  (reset! sock client)
+                  (stream/consume (partial message-dispatcher client) client)
+                  (stream/on-closed client #(do (log/info "*client* websocket closed")
+                                                (a/close! retry))))
+              (log/info "*client* failed to open websocket connection : unauthorized")))
+          (catch Exception e (log/error "*client* failed to open websocket connection:" (.getMessage e)))))
+      (a/<!! retry)                                         ;; wait for a time, or when we get a callback from the channel that it is closed.
+      (recur (retry-fn)))))
 
 (defn fake-client [name sock message]
   (let [m (clojure.edn/read-string message)
@@ -215,12 +242,13 @@
                        :body       (str/upper-case (:body m))})]
     (log/info "client " name " got  : " message)
     (log/info "client " name " reply:" reply)
-    @(s/put! sock reply)))
+    @(stream/put! sock reply)))
 
 (defn fake-server [message]
   (println "server got: " message))
 
 (comment
+  (s/check-asserts true)
 
   (defn- create-jwt-keypair []
     "Convenience function to make a pair of JWT tokens at the REPL. Not designed to be used
@@ -240,25 +268,27 @@
   (def ec-pubkey (buddy.core.keys/public-key "test/resources/ecpubkey.pem"))
 
   (def port 10000)
-  (def server (run-server port ec-pubkey ec-pubkey))
+  (def server (run-server {:server-port                port
+                           :internal-client-public-key ec-pubkey
+                           :external-client-public-key ec-pubkey}))
   server
   @connected-client-socket
 
-  (s/close! @connected-client-socket)
-  (s/closed? @connected-client-socket)
+  (stream/close! @connected-client-socket)
+  (stream/closed? @connected-client-socket)
+  (a/thread (run-client {:server-host "localhost" :server-port port :internal-client-private-key ec-privkey}))
+
   (def url (str "ws://localhost:" port "/ws"))
-  (a/thread (run-client url ec-privkey))
-  (run-client url ec-privkey)
   (def c1 @(http/websocket-client url {:heartbeats {:send-after-idle 60000 :timeout 5000}}))
   (def token (make-token {:system "concierge"} ec-privkey))
-  @(s/put! c1 token)
+  @(stream/put! c1 token)
 
   (manifold.stream/description c1)
-  (s/consume (partial message-dispatcher c1) c1)
-  (s/consume (partial fake-client "c1" c1) c1)
-  (s/on-closed c1 #(println "oooo server disconnected me!!!!"))
-  (s/close! @connected-client-socket)
-  @(s/put! @connected-client-socket (pr-str {:message-id 4 :body "{:cmd :ping}"}))
+  (stream/consume (partial message-dispatcher c1) c1)
+  (stream/consume (partial fake-client "c1" c1) c1)
+  (stream/on-closed c1 #(println "oooo server disconnected me!!!!"))
+  (stream/close! @connected-client-socket)
+  @(stream/put! @connected-client-socket (pr-str {:message-id 4 :body "{:cmd :ping}"}))
 
   (def external-token (make-token {:system "some other app"} ec-privkey 30))
   (println external-token)
@@ -268,16 +298,16 @@
   (clojure.core.async/close! timeout-channel)
 
   (def c2 @(http/websocket-client url))
-  (s/put! c2 "secret")
+  (stream/put! c2 "secret")
   (manifold.stream/description c2)
-  (s/consume (partial fake-client "c2" c2) c2)
+  (stream/consume (partial fake-client "c2" c2) c2)
 
-  (s/put! from-client "Wobble")
-  (s/put! @connected-client-socket "Hi client")
-  (s/put! @connected-client-socket (pr-str {:wibble "flibble"}))
-  @(s/put! c1 "This is a new message from client 1")
-  @(s/put! c2 "This is a new message from client 2")
-  (s/close! c2)
+  (stream/put! from-client "Wobble")
+  (stream/put! @connected-client-socket "Hi client")
+  (stream/put! @connected-client-socket (pr-str {:wibble "flibble"}))
+  @(stream/put! c1 "This is a new message from client 1")
+  @(stream/put! c2 "This is a new message from client 2")
+  (stream/close! c2)
 
   @(http/websocket-ping @connected-client-socket)
   @(http/websocket-ping c1)
@@ -293,5 +323,4 @@
   (def unsigned-data (jwt/unsign signed-data ec-pubkey {:alg :es256}))
   unsigned-data
 
-  (def token (jwt/sign {:system "cvx-neuro01"} secret))
-  (jwt/unsign token secret))
+  )

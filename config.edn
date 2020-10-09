@@ -1,17 +1,18 @@
-{:secrets #include #join [#env HOME "/.secrets.edn"]
- :wales   {:empi  {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
-                   :processing-id "P"}
-           :nadex {:connection-pool-size  5
-                   :default-bind-username #ref [:secrets :nadex-bind-username]
-                   :default-bind-password #ref [:secrets :nadex-bind-password]}}
- :connect {:server-host          "localhost"
-           :server-port          10000
-           ;; concierge connect JWT credentials for securing client<->server WebSockets channel
-           :internal-public-key  "test/resources/ecpubkey.pem"
-           :internal-private-key "test/resources/ecprivkey.pem"
-           ;; concierge connect credentials for securing external clients: TODO: use different key that internal client
-           :external-public-key  "test/resources/ecpubkey.pem"}
- :https   #profile {:live {:proxy-host "137.4.60.101"
-                           :proxy-port 8080}}
- :http    #profile {:live {:proxy-host #ref [:https :proxy-host]
-                           :proxy-port #ref [:https :proxy-port]}}}
+{:secrets   #include #join [#env HOME "/.secrets.edn"]
+ :wales     {:empi  {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
+                     :processing-id "P"}
+             :nadex {:connection-pool-size  5
+                     :default-bind-username #ref [:secrets :nadex-bind-username]
+                     :default-bind-password #ref [:secrets :nadex-bind-password]}}
+ :concierge {:connect {:server-host          "localhost"
+                       :server-port          10000
+                       :internal-client-public-key  "test/resources/ecpubkey.pem"
+                       :internal-client-private-key "test/resources/ecprivkey.pem"
+                       :external-client-public-key  "test/resources/ecpubkey.pem"
+                       :retry-milliseconds   5000
+                       :timeout-milliseconds 3000}}
+
+ :https     #profile {:live {:proxy-host "137.4.60.101"
+                             :proxy-port 8080}}
+ :http      #profile {:live {:proxy-host #ref [:https :proxy-host]
+                             :proxy-port #ref [:https :proxy-port]}}}

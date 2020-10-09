@@ -1,11 +1,12 @@
 (ns com.eldrix.concierge.wales.connect-test
   (:require [clojure.test :refer :all]
+            [clojure.spec.alpha :as s]
             [com.eldrix.concierge.connect :as connect]
-            [cprop.core :as cprop]
-            [manifold.stream :as s]
+            [manifold.stream :as stream]
             [clojure.java.io :as io]
             [clojure.tools.logging :as log]))
 
+(s/check-asserts true)
 
 (deftest test-tokens
   (let [priv-key (buddy.core.keys/private-key "test/resources/ecprivkey.pem")
@@ -20,16 +21,17 @@
   [valid-token?]
   (let [priv-key (buddy.core.keys/private-key "test/resources/ecprivkey.pem")
         pub-key (buddy.core.keys/public-key "test/resources/ecpubkey.pem")]
-    (with-open [server (connect/run-server 0 pub-key pub-key)]
+    (with-open [server (connect/run-server {:server-port 0 :internal-client-public-key pub-key :external-client-public-key pub-key})]
       (let [port (aleph.netty/port server)
             url (str "ws://localhost:" port "/ws")
             client @(aleph.http/websocket-client url)
             token (if valid-token? (@#'connect/make-token {:system "concierge"} priv-key) "invalid-token")]
-        (is @(s/put! client token))
-        (Thread/sleep 1000)   ;; rather non-deterministic, but we have to wait for server to close channel
+        (log/info "testing with" (if valid-token? "valid" "invalid") "token")
+        (is @(stream/put! client token))
+        (Thread/sleep 1000)                                 ;; rather non-deterministic, but we have to wait for server to close channel
         (if valid-token?
-          (is (not (manifold.stream/closed? client)))
-          (is (manifold.stream/closed? client)))))))
+          (is (not (stream/closed? client)))
+          (is (stream/closed? client)))))))
 
 (deftest test-server-valid-token
   (test-internal-client true))
