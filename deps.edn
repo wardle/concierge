@@ -1,26 +1,27 @@
 {
- :paths   ["src" "resources" "classes"]
+ :paths ["src" "resources" "classes"]
 
- :deps    {org.clojure/clojure             {:mvn/version "1.10.1"}
-           org.clojure/core.async          {:mvn/version "1.3.610"}
-           org.clojure/data.xml            {:mvn/version "0.2.0-alpha6"}
-           org.clojure/data.zip            {:mvn/version "1.0.0"}
-           org.clojure/tools.cli           {:mvn/version "1.0.194"}
-           org.clojure/tools.logging       {:mvn/version "1.1.0"}
+ :deps  {org.clojure/clojure             {:mvn/version "1.10.1"}
+         org.clojure/core.async          {:mvn/version "1.3.610"}
+         org.clojure/data.xml            {:mvn/version "0.2.0-alpha6"}
+         org.clojure/data.zip            {:mvn/version "1.0.0"}
+         org.clojure/tools.cli           {:mvn/version "1.0.194"}
+         org.clojure/tools.logging       {:mvn/version "1.1.0"}
 
-           ch.qos.logback/logback-classic  {:mvn/version "1.2.3"}
+         ch.qos.logback/logback-classic  {:mvn/version "1.2.3"}
 
-           aero/aero                       {:mvn/version "1.1.6"}
-           aleph/aleph                     {:mvn/version "0.4.7-alpha5"}
-           buddy/buddy                     {:mvn/version "2.0.0"}
-           clj-http/clj-http               {:mvn/version "2.3.0"}
-           compojure/compojure             {:mvn/version "1.6.2"}
-           com.unboundid/unboundid-ldapsdk {:mvn/version "5.1.1"}
-           mount/mount                     {:mvn/version "0.1.16"}
-           ring/ring-defaults              {:mvn/version "0.3.2"}
-           selmer/selmer                   {:mvn/version "1.12.18"}}
+         aero/aero                       {:mvn/version "1.1.6"}
+         aleph/aleph                     {:mvn/version "0.4.7-alpha5"}
+         buddy/buddy                     {:mvn/version "2.0.0"}
+         clj-http/clj-http               {:mvn/version "2.3.0"}
+         compojure/compojure             {:mvn/version "1.6.2"}
+         com.layerware/hugsql-core       {:mvn/version "0.5.1"}
+         com.unboundid/unboundid-ldapsdk {:mvn/version "5.1.1"}
+         mount/mount                     {:mvn/version "0.1.16"}
+         ring/ring-defaults              {:mvn/version "0.3.2"}
+         selmer/selmer                   {:mvn/version "1.12.18"}}
 
- :aliases {:test {:extra-paths ["test" "test/resources"]
-                  :extra-deps  {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                           :sha     "6ec7f8eef509cd14d831e8cc16e856b31327a862"}}
-                  :main-opts   ["-m" "cognitect.test-runner"]}}}
+         :aliases                        {:test {:extra-paths ["test" "test/resources"]
+                                                 :extra-deps  {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                                                          :sha     "6ec7f8eef509cd14d831e8cc16e856b31327a862"}}
+                                                 :main-opts   ["-m" "cognitect.test-runner"]}}}
