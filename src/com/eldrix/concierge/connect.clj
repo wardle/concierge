@@ -11,25 +11,27 @@
   {:message-id xxxx
     :body      xxxx}"
   (:require
-   [aleph.http :as http]
-   [aleph.netty]
-   [buddy.core.keys :as keys]
-   [buddy.sign.jwt :as jwt]
-   [clojure.edn :as edn]
-   [clojure.string :as str]
-   [clojure.spec.alpha :as s]
-   [clojure.core.async :as a]
-   [clojure.tools.logging.readable :as log]
-   [compojure.core :as compojure :refer [GET POST]]
-   [compojure.route :as route]
-   [manifold.stream :as stream]
-   [manifold.deferred :as d]
-   [manifold.bus :as bus]
-   [ring.middleware.params :as params]
-   [ring.util.request])
+    [aleph.http :as http]
+    [aleph.netty]
+    [buddy.core.keys :as keys]
+    [buddy.sign.jwt :as jwt]
+    [clojure.edn :as edn]
+    [clojure.string :as str]
+    [clojure.spec.alpha :as s]
+    [clojure.core.async :as a]
+    [clojure.tools.logging.readable :as log]
+    [compojure.core :as compojure :refer [GET POST]]
+    [compojure.route :as route]
+    [manifold.stream :as stream]
+    [manifold.deferred :as d]
+    [manifold.bus :as bus]
+    [ring.middleware.params :as params]
+    [ring.util.request])
   (:import (io.netty.channel ChannelPipeline ChannelHandler)
            (java.net InetSocketAddress)
-           (io.netty.handler.proxy HttpProxyHandler)))
+           (io.netty.handler.proxy HttpProxyHandler)
+           (io.netty.handler.ssl SslContextBuilder)))
+
 
 
 (defn- jwt-expiry
@@ -151,26 +153,42 @@
       (params/wrap-params)
       (wrap-config config)))
 
+(defn create-server-ssl-context [^String key-cert-chain-file ^String key-file]
+  (.build (SslContextBuilder/forServer (java.io.File. key-cert-chain-file) (java.io.File. key-file))))
+
+
+(s/def ::ssl-config (s/keys :req-un [::key-cert-chain-file ::key-file]))
+(s/def ::server-config (s/keys :req-un [::server-port ::internal-client-public-key ::external-client-public-key]
+                               :opt-un [::ssl-config ::timeout-milliseconds]))
+
 (defn run-server
   "Runs a 'connect' server with the configuration as specified:
-  - server-port - port on which to run server, or random if zero
+  - server-port                - port on which to run server, or random if zero
   - internal-client-public-key - public key to use to validate JWT tokens for internal client
   - external-client-public-key - public key to use to validate JWT tokens for external client
-  - timeout-milliseconds - timeout to use, optional, with default 5000.
+  - ssl-config                 - SSL configuration to use, if SSL is required
+  - timeout-milliseconds       - timeout to use, optional, with default 5000.
+
+  The ssl-config, if needed, is made up of:
+    - key-cert-chain-file    - filename of certificate chain file - X.509 certificate chain file in PEM format
+    - key-file               - filename of PKCS#8 private key file in PEM format\n
 
    To wait until it is closed, use 'wait-for-close'"
-  [{:keys [server-port internal-client-public-key external-client-public-key timeout-milliseconds] :as config}]
-  {:pre [(s/assert (s/keys :req-un [::server-port ::internal-client-public-key ::external-client-public-key]
-                           :opt-un [::timeout-milliseconds]) config)]}
+  [{:keys [server-port internal-client-public-key external-client-public-key
+           ssl-config timeout-milliseconds] :as config}]
+  {:pre [(s/assert ::server-config config)]}
   (when (= internal-client-public-key external-client-public-key)
     (log/warn "*server* WARNING: using same public key for both internal and external clients"))
   (let [server (http/start-server
                  (app-routes {:timeout-milliseconds   (or timeout-milliseconds 5000)
                               :internal-token-auth-fn #(valid-token? % internal-client-public-key)
                               :external-token-auth-fn #(valid-token? % external-client-public-key)})
-                 {:port server-port})
+                 (merge {:port server-port}
+                        (when ssl-config
+                          {:ssl-context (create-server-ssl-context (:key-cert-chain-file ssl-config)
+                                                                   (:key-file ssl-config))})))
         actual-port (aleph.netty/port server)]
-    (log/info "*server* started server on port " actual-port)
+    (log/info "*server* started server on port" actual-port (when ssl-config (str " ssl: " ssl-config)))
     server))
 
 (defn wait-for-close
@@ -253,7 +271,7 @@
 (comment
   (s/check-asserts true)
 
-  (defn- create-jwt-keypair 
+  (defn- create-jwt-keypair
     "Convenience function to make a pair of JWT tokens at the REPL. Not designed to be used
     in live programs. Returns a vector of the private key and the public key."
     []
@@ -274,8 +292,9 @@
   (def port 10000)
   (def server (run-server {:server-port                port
                            :internal-client-public-key ec-pubkey
-                           :external-client-public-key ec-pubkey}))
-  server
+                           :external-client-public-key ec-pubkey
+                           :ssl-config                 {:key-cert-chain-file "host.cert" :key-file "host.key"}}))
+  (.close server)
   @connected-client-socket
 
   (stream/close! @connected-client-socket)
