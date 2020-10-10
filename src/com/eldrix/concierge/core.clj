@@ -41,7 +41,8 @@
         server (connect/run-server
                  {:server-port                (:server-port opts)
                   :internal-client-public-key (buddy.core.keys/public-key (:internal-client-public-key opts))
-                  :external-client-public-key (buddy.core.keys/public-key (:external-client-public-key opts))})]
+                  :external-client-public-key (buddy.core.keys/public-key (:external-client-public-key opts))
+                  :ssl-config                 {}})]
     (when server (connect/wait-for-close server))))
 
 (def commands
@@ -57,7 +58,7 @@
     (if command-fn
       (do
         (log/info "starting concierge with command:" command)
-        (mount/start-with-args {:profile :live})
+        (mount/start-with-args {:profile :dev})
         (log/info "configuration:" (dissoc config/root :secrets))
         (command-fn (rest args)))
       (log/error "invalid command. usage: 'concierge <command>'"))))
