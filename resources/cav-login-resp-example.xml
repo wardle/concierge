@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<response>
+  <method name="Login">
+    <message>Login Successful</message>
+    <summary success="true" rowcount="1" />
+    <row>
+      <column name="authenticationToken" value="this-will-be-the-token" />
+    </row>
+  </method>
+</response>

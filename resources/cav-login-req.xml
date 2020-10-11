@@ -1,0 +1,7 @@
+<request>
+<method name="Login">
+<parameter name="username">{{username}}</parameter>
+<parameter name="password">{{password}}</parameter>
+<parameter name="database">{{database}}</parameter>
+<parameter name="userString">{{user-string}}</parameter>
+</method></request>
