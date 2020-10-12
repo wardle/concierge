@@ -46,10 +46,9 @@
   [_]
   (let [opts (config/concierge-connect-config)
         server (connect/run-server
-                 {:server-port                (:server-port opts)
-                  :internal-client-public-key (buddy.core.keys/public-key (:internal-client-public-key opts))
-                  :external-client-public-key (buddy.core.keys/public-key (:external-client-public-key opts))
-                  :ssl-config                 {}})]
+                 (-> opts
+                     (assoc :internal-client-public-key (buddy.core.keys/public-key (:internal-client-public-key opts))
+                            :external-client-public-key (buddy.core.keys/public-key (:external-client-public-key opts)))))]
     (when server (connect/wait-for-close server))))
 
 (def commands
