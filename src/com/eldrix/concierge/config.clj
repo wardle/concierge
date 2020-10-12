@@ -6,7 +6,7 @@
             [mount.core :as mount]))
 
 (defstate root
-          :start (read-config "config.edn" (mount/args) ))
+  :start (read-config "config.edn" (mount/args)))
 
 (defn https-proxy []
   (select-keys (:https root) [:proxy-host :proxy-port]))
@@ -28,6 +28,10 @@
 
 (defn empi-processing-id []
   (get-in root [:wales :empi :processing-id]))
+
+(defn cav-pms []
+  (get-in root [:wales :cav :pms]))
+
 
 (defn concierge-connect-config []
   (get-in root [:concierge :connect]))

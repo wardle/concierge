@@ -22,7 +22,7 @@ AND PEOPLE.ID = PATIENT_IDENTIFIERS.PATI_ID
 AND LOCATIONS.ORGA_PERS_ID (+) = PEOPLE.ID
 AND HEALTHCARE_PRACTITIONERS.PERS_ID (+) = PEOPLE.GP_ID
 AND EXTERNAL_ORGANISATIONS.ID (+) = PEOPLE.GPPR_ID
-ORDER BY LOCATIONS.DATE_FROM DESC;
+ORDER BY LOCATIONS.DATE_FROM DESC
 
 -- :name fetch-patients-for-clinic :? :*
 -- :doc Fetch patients for the given clinic(s) by :clinic-code on the given :date-string (YYYY/MM/DD)

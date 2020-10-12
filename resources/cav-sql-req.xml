@@ -1,0 +1,7 @@
+<request authenticationToken="{{authentication-token}}">
+    <method name="SqlTableCall">
+        <parameter name="sql">
+            <![CDATA[{% safe %}{{sql-text}}{% endsafe %}]]>
+        </parameter>
+    </method>
+</request>
