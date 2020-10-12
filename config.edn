@@ -13,6 +13,7 @@
                        :internal-client-public-key  "test/resources/ecpubkey.pem"
                        :internal-client-private-key "test/resources/ecprivkey.pem"
                        :external-client-public-key  "test/resources/ecpubkey.pem"
+                       :ssl-config {:key-cert-chain-file "host.cert" :key-file "host.key"}
                        :retry-milliseconds   5000
                        :timeout-milliseconds 3000}}
 
