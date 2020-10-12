@@ -4,6 +4,7 @@
             [com.eldrix.concierge.connect :as connect]
             [com.eldrix.concierge.wales.empi :as empi]
             [com.eldrix.concierge.wales.nadex :as nadex]
+            [com.eldrix.concierge.wales.cav.pms :as cavpms]
             [clojure.tools.logging.readable :as log]
             [mount.core :as mount]
             [clojure.string :as str]
@@ -13,12 +14,18 @@
 (s/check-asserts true)
 
 (defn register-resolvers
-  "Registers all of the supported namespaces from the EMPI against the resolver."
+  "Registers all of the supported namespaces against the resolver.
+   This is a work-in-progress and just for testing at the moment. Each service really needs to
+   provide a URI based set of properties and so provide equivalence - and standardisation - and then
+   could each be mapped into a concrete standard such as HL7 FHIR Patient resource, for example."
   []
   ;; register all known EMPI authorities
   (let [empi-svc (empi/->EmpiService)]
     (doseq [uri (keys empi/authorities)] (res/register-resolver uri empi-svc)))
 
+  ;; register CAV lookup - note - this will replace EMPI as resolver for CAV identifiers... TODO: blend result for Cardiff patients - e.g. for telephones
+  (res/register-resolver  "https://fhir.cavuhb.nhs.wales/Id/pas-identifier" (cavpms/->CAVService) )
+  
   ;; register NADEX directory lookup
   (let [nadex-svc (nadex/->NadexService (config/nadex-default-bind-username) (config/nadex-default-bind-password))]
     (res/register-resolver "https://fhir.nhs.wales/Id/cymru-user-id" nadex-svc)
