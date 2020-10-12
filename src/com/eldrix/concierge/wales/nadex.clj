@@ -11,7 +11,8 @@
 
 ;; Unfortunately, the CYMRU domain uses a self-signed certificate. Alternatives would be to
 ;; use a custom keystore or downgrade to using a non-encrypted channel of communication.
-;; In the circumstances, a man-in-the-middle attack within an intranet environment is unlikely.
+;; In the circumstances, a man-in-the-middle attack within an intranet environment is unlikely,
+;; so we simply accept self-signed server certificates and at least encrypt our communications.
 (defn make-unauthenticated-connection
   "Creates a secure but unauthenticated connection, trusting all server certificates."
   []
