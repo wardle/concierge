@@ -31,7 +31,7 @@
 
 (defn do-login
   [& {:as opts}]
-  (let [req-xml (selmer.parser/render-file (io/resource "cav-login-req.xml") (merge (config/cav-pms) opts))
+  (let [req-xml (selmer.parser/render-file (io/resource "wales/cav/login-req.xml") (merge (config/cav-pms) opts))
         resp (-> (perform-get-data req-xml)
                  :body
                  xml/parse-str
@@ -108,7 +108,7 @@
    - :row-count - number of rows returned
    - :body      - actual data returned, transformed into a sequence of maps."
   [sqlvec]
-  (let [req (selmer.parser/render-file (io/resource "cav-sql-req.xml")
+  (let [req (selmer.parser/render-file (io/resource "wales/cav/sql-req.xml")
                                        {:authentication-token (get-authentication-token)
                                         :sql-text  (sqlvec->query sqlvec)})
         parsed-xml  (-> (perform-get-data req)
@@ -179,7 +179,8 @@
                             :body         xml}
                            (when has-proxy {:proxy-host proxy-host
                                             :proxy-port proxy-port})))))
-(defn parse-receive-by-crn-response 
+
+(defn- parse-receive-by-crn-response
   [response]
   (let [result (zx/xml1-> (-> response
                               :body
@@ -195,7 +196,7 @@
    :message error
    :document-id doc-id}))
 
-(defn file->bytes
+(defn- file->bytes
   "Turn a file/string/inputstream/socket/url into a byte array."
   [f]
   (with-open [xin (io/input-stream f)
@@ -206,7 +207,7 @@
 (defn- make-receivefilebycrn-request
   [{:keys [crn description uid f file-type]}]
   (selmer.parser/render-file
-   (io/resource "cav-receivefilebycrn-req.xml")
+   (io/resource "wales/cav/receivefilebycrn-req.xml")
    {:crn crn
     :bfsId uid
     :key "GENERAL LETTER"
@@ -237,14 +238,11 @@
   (mount/stop)
   (config/cav-pms)
 
-
-
-
-
   (def response (post-document {:crn "A999998"
                                 :uid "patientcare 004"
                                 :description "Test letter patientcare/concierge"
-                                :f "dummy.pdf"}))
+                                :f "test/resources/dummy.pdf"}))
+
   (parse-receive-by-crn-response response)
  
   (fetch-patients-for-clinics ["neur58r"] (java.time.LocalDate/parse "2020/10/09" df))
@@ -261,7 +259,7 @@
   (do-sql sql)
   sql
   (sqlvec->query sql)
-  (def req-xml (selmer.parser/render-file (io/resource "cav-sql-req.xml")
+  (def req-xml (selmer.parser/render-file (io/resource "wales/cav/sql-req.xml")
                                           {:authentication-token (get-authentication-token)
                                            :sql-text  (sqlvec->query sql)}))
   (println req-xml)

@@ -163,17 +163,17 @@
 
 (defn run-server
   "Runs a 'connect' server with the configuration as specified:
-  - server-port                - port on which to run server, or random if zero
-  - internal-client-public-key - public key to use to validate JWT tokens for internal client
-  - external-client-public-key - public key to use to validate JWT tokens for external client
-  - ssl-config                 - SSL configuration to use, if SSL is required
-  - timeout-milliseconds       - timeout to use, optional, with default 5000.
+  |- server-port                - port on which to run server, or random if zero
+  |- internal-client-public-key - public key to use to validate JWT tokens for internal client, key or filename
+  |- external-client-public-key - public key to use to validate JWT tokens for external client, key or filename
+  |- ssl-config                 - SSL configuration to use, if SSL is required
+  |- timeout-milliseconds       - timeout to use, optional, with default 5000.
 
   The ssl-config, if needed, is made up of:
-    - key-cert-chain-file    - filename of certificate chain file - X.509 certificate chain file in PEM format
-    - key-file               - filename of PKCS#8 private key file in PEM format\n
+  |- key-cert-chain-file        - filename of certificate chain file - X.509 certificate chain file in PEM format
+  |- key-file                   - filename of PKCS#8 private key file in PEM format\n
 
-   To wait until it is closed, use 'wait-for-close'"
+  To wait until it is closed, use 'wait-for-close'"
   [{:keys [server-port internal-client-public-key external-client-public-key
            ssl-config timeout-milliseconds] :as config}]
   {:pre [(s/assert ::server-config config)]}
