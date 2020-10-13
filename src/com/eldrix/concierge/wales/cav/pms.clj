@@ -16,6 +16,8 @@
   (:import java.time.LocalDateTime))
 
 ;; (hugsql/def-db-fns "com/eldrix/concierge/wales/cav/pms.sql")
+(declare fetch-patient-by-crn-sqlvec)
+(declare fetch-patients-for-clinic-sqlvec)
 (hugsql/def-sqlvec-fns "com/eldrix/concierge/wales/cav/pms.sql")
 
 (defn perform-get-data
@@ -23,6 +25,9 @@
   [^String request-xml]
   (client/post "http://cav-wcp02.cardiffandvale.wales.nhs.uk/PmsInterface/WebService/PMSInterfaceWebService.asmx/GetData"
                {:form-params {:XmlDataBlockIn request-xml}}))
+
+
+
 
 (defn do-login
   [& {:as opts}]
@@ -158,6 +163,70 @@
   ([clinic-codes date]
    (mapcat #(fetch-patients-for-clinic % date) clinic-codes)))
 
+(xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
+(xml/alias-uri :cav "http://localhost/PMSInterfaceWebService")
+
+(defn- perform-receive-file-by-crn
+  "Execute the SOAP action, 'receiveFileByCrn' against the CAV PMS service."
+  [{:keys [url xml proxy-host proxy-port] :as req}]
+  (when-not url (throw (ex-info "no URL specified for CAV PMS webservices endpoint" req)))
+  (log/info "cav pms soap request:" (dissoc req :xml))
+  (let [has-proxy (and proxy-host proxy-port)]
+    (client/request (merge {:method       :post
+                            :url          url
+                            :content-type "text/xml; charset=\"utf-8\""
+                            :headers      {"SOAPAction" "http://localhost/PMSInterfaceWebService/ReceiveFileByCrn"}
+                            :body         xml}
+                           (when has-proxy {:proxy-host proxy-host
+                                            :proxy-port proxy-port})))))
+(defn parse-receive-by-crn-response 
+  [response]
+  (let [result (zx/xml1-> (-> response
+                              :body
+                              xml/parse-str
+                              zip/xml-zip)
+                          ::soap/Envelope
+                          ::soap/Body
+                          ::cav/ReceiveFileByCrnResponse
+                          ::cav/ReceiveFileByCrnResult)
+        error (zx/xml1-> result ::cav/ErrorMessage zx/text)
+        doc-id (zx/xml1-> result ::cav/DocId zx/text)]
+  {:success? (str/blank? error)
+   :message error
+   :document-id doc-id}))
+
+(defn file->bytes
+  "Turn a file/string/inputstream/socket/url into a byte array."
+  [f]
+  (with-open [xin (io/input-stream f)
+              xout (java.io.ByteArrayOutputStream.)]
+    (io/copy xin xout)
+    (.toByteArray xout)))
+
+(defn- make-receivefilebycrn-request
+  [{:keys [crn description uid f file-type]}]
+  (selmer.parser/render-file
+   (io/resource "cav-receivefilebycrn-req.xml")
+   {:crn crn
+    :bfsId uid
+    :key "GENERAL LETTER"
+    :source description
+    :fileContent (str "<![CDATA[" (.encodeToString (java.util.Base64/getMimeEncoder) (file->bytes f)) "]]>")
+    :fileType (or file-type ".pdf")}))
+
+(defn post-document
+ "Post a document to the CAV PMS webservice.
+  Parameters: 
+  - :crn         - case record number
+  - :description - description of the document
+  - :uid         - unique identifier, max 15 characters
+  - :f           - file/URL/filename/InputStream/socket/bytes/string of file content
+  - :file-type   - extension of file, optional, defaults to \".pdf\"." 
+  [opts]
+  (perform-receive-file-by-crn {:url "http://cav-wcp02.cardiffandvale.wales.nhs.uk/PmsInterface/WebService/PMSInterfaceWebService.asmx"
+                                :xml (make-receivefilebycrn-request opts)}))
+
+
 (deftype CAVService []
   Resolver
   (resolve-id [this system value]
@@ -168,10 +237,20 @@
   (mount/stop)
   (config/cav-pms)
 
+
+
+
+
+  (def response (post-document {:crn "A999998"
+                                :uid "patientcare 004"
+                                :description "Test letter patientcare/concierge"
+                                :f "dummy.pdf"}))
+  (parse-receive-by-crn-response response)
+ 
   (fetch-patients-for-clinics ["neur58r"] (java.time.LocalDate/parse "2020/10/09" df))
-  
+
   (def pt (fetch-patient-by-crn "A999998"))
-  
+
   (clojure.pprint/pprint (dissoc pt :ADDRESSES))
   (clojure.pprint/pprint  pt)
 
