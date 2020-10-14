@@ -15,7 +15,7 @@
     (is (= "123" (:authority r2)))))
 
 (deftest parse-response
-  (let [fake-response {:status 200 :body (slurp (io/resource "wales-emp-resp-example.xml"))}
+  (let [fake-response {:status 200 :body (slurp (io/resource "wales/empi-resp-example.xml"))}
         pdq (@#'empi/parse-pdq fake-response)]
     (is (= 2 (count pdq)))
     (is (= "TESTING" (:first-names (first pdq))))

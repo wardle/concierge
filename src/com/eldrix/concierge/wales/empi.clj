@@ -217,7 +217,7 @@
                    params
                    (or (get authorities authority) (do (log/debug "unknown authority in request:" authority) {:authority authority :authority-type "PI"}))
                    {:identifier identifier})
-        body (selmer.parser/render-file (io/resource "wales-empi-req.xml") req)]
+        body (selmer.parser/render-file (io/resource "wales/empi-req.xml") req)]
     (assoc req :xml body)))
 
 (defn resolve!
@@ -248,7 +248,7 @@
   (resolve! "140" "X774755")
 
   (def fake-response {:status 200
-                      :body   (slurp (io/resource "wales-emp-resp-example.xml"))})
+                      :body   (slurp (io/resource "wales/empi-resp-example.xml"))})
   (parse-pdq fake-response))
 
 
