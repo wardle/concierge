@@ -2,7 +2,9 @@
   "Integration with NHS Wales' active directory for authentication and user lookup."
   (:require [clojure.java.io :as io]
             [clojure.tools.logging.readable :as log]
-            [com.eldrix.concierge.config :as config])
+            [mount.core :as mount]
+            [com.eldrix.concierge.config :as config]
+            [com.eldrix.concierge.registry])
   (:import (com.eldrix.concierge.registry Resolver FreetextSearcher StructuredSearcher)
            (com.unboundid.ldap.sdk LDAPConnectionPool LDAPConnection LDAPBindException LDAPConnectionOptions
                                    SearchRequest SearchScope Filter Attribute)
@@ -17,17 +19,17 @@
   "Creates a secure but unauthenticated connection, trusting all server certificates."
   []
   (LDAPConnection.
-    (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.)))
-    (doto (LDAPConnectionOptions.)
-      (.setConnectTimeoutMillis 2000)
-      (.setFollowReferrals false))
-    "cymru.nhs.uk"
-    636))
+   (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.)))
+   (doto (LDAPConnectionOptions.)
+     (.setConnectTimeoutMillis 2000)
+     (.setFollowReferrals false))
+   "cymru.nhs.uk"
+   636))
 
 (defonce ^LDAPConnectionPool connection-pool
-         (delay
-           (log/info "creating LDAP connection pool; size:" (config/nadex-connection-pool-size))
-           (LDAPConnectionPool. (make-unauthenticated-connection) (config/nadex-connection-pool-size))))
+  (delay
+   (log/info "creating LDAP connection pool; size:" (config/nadex-connection-pool-size))
+   (LDAPConnectionPool. (make-unauthenticated-connection) (or 5 (config/nadex-connection-pool-size)))))
 
 (defn can-authenticate?
   "Can the user 'username' authenticate using the 'password' specified?"
@@ -48,19 +50,28 @@
 (def ^:private binary-attributes
   #{"thumbnailPhoto"})
 
+(defn- parse-attr 
+  "Parse an LDAP attribute into a tuple key/value pair"
+  [^com.unboundid.ldap.sdk.Attribute attr]
+  (let [n (.getName attr)
+        v (if (contains? binary-attributes n)
+            (.getValueByteArray attr)
+            (let [v (.getValues attr)] (if (= 1 (count v)) (first v) v)))]
+    [(keyword n) v]))
+
 (defn parse-entry [^com.unboundid.ldap.sdk.SearchResultEntry result]
-  (let [attrs (.getAttributes result)]
-    (zipmap (map #(keyword (.getName %)) attrs)
-            (map #(let [v (.getValues ^Attribute %)] (if (= 1 (count v)) (first v) v)) attrs))))
+    (into {} (map parse-attr (.getAttributes result))))
 
 (defn by-username [^String username]
   (Filter/createEqualityFilter "sAMAccountName" username))
 
-(defn by-name [^String name]
+(defn by-name [^String names]
   (Filter/createANDFilter ^Collection
-                          (->> (clojure.string/split name #"\s+")
-                               (map #(Filter/createORFilter [(Filter/createSubInitialFilter "sn" ^String %)
-                                                             (Filter/createSubInitialFilter "givenName" ^String %)])))))
+   (->> (clojure.string/split names #"\s+")
+        (map #(Filter/createORFilter [(Filter/createSubInitialFilter "sn" ^String %)
+                                      (Filter/createSubInitialFilter "givenName" ^String %)])))))
+(defn by-job [^String name]
+  (Filter/createSubAnyFilter "title" (into-array String (clojure.string/split name #"\s+"))))
 
 (defn by-params [params]
   (let [clauses (map (fn [[k v]] (Filter/createEqualityFilter ^String (name k) ^String v)) params)]
@@ -78,10 +89,10 @@
    (with-open [c (.getConnection @connection-pool)]
      (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
      (let [results (.search c (SearchRequest.
-                                "DC=cymru,DC=nhs,DC=uk"
-                                SearchScope/SUB
-                                (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
-                                (into-array String returning-attributes)))]
+                               "DC=cymru,DC=nhs,DC=uk"
+                               SearchScope/SUB
+                               (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
+                               (into-array String returning-attributes)))]
        (map parse-entry (.getSearchEntries results))))))
 
 (deftype NadexService [username password]
@@ -102,5 +113,17 @@
   (def bind-password (config/nadex-default-bind-password))
   (can-authenticate? bind-username bind-password)
   (search bind-username bind-password (by-username "ma090906"))
+  bind-password
+  (def ortho (search bind-username bind-password (by-job "orthopaedic")))
+  (require '[clojure.data.csv :as csv])
+
+  (with-open [writer (io/writer "out-file.csv")]
+    (clojure.data.csv/write-csv writer ortho))
+  
+  (def jc (search bind-username bind-password (by-name "Chess")))
+  jc
+  (type (:thumbnailPhoto (first jc)))
+  (with-open [o (io/output-stream "jc.jpg")]
+    (.write o (:thumbnailPhoto (first jc))))
   )
 
