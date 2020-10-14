@@ -149,6 +149,7 @@
             (assoc :ADDRESSES (map #(select-keys % address-keys) (:body results))))))))
 
 (defn fetch-patients-for-clinic
+  "Fetch a list of patients for a specific clinic, on the specified date."
   ([clinic-code] (fetch-patients-for-clinic clinic-code (java.time.LocalDate/now)))
   ([clinic-code date]
    (log/info "fetching patients for clinic " clinic-code "on" date)
