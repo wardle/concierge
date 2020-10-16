@@ -26,12 +26,9 @@
   (client/post "http://cav-wcp02.cardiffandvale.wales.nhs.uk/PmsInterface/WebService/PMSInterfaceWebService.asmx/GetData"
                {:form-params {:XmlDataBlockIn request-xml}}))
 
-
-
-
 (defn do-login
   [& {:as opts}]
-  (let [req-xml (selmer.parser/render-file (io/resource "wales/cav/login-req.xml") (merge (config/cav-pms) opts))
+  (let [req-xml (selmer.parser/render-file (io/resource "wales/cav/login-req.xml") (merge (config/cav-pms-config) opts))
         resp (-> (perform-get-data req-xml)
                  :body
                  xml/parse-str
@@ -160,6 +157,7 @@
        (:body results)))))
 
 (defn fetch-patients-for-clinics
+  "Fetch a list of patients for a list of clinics."
   ([clinic-codes] (fetch-patients-for-clinics clinic-codes (java.time.LocalDate/now)))
   ([clinic-codes date]
    (mapcat #(fetch-patients-for-clinic % date) clinic-codes)))
@@ -237,7 +235,7 @@
 (comment
   (mount/start)
   (mount/stop)
-  (config/cav-pms)
+  (config/cav-pms-config)
 
   (def response (post-document {:crn "A999998"
                                 :uid "patientcare 004"

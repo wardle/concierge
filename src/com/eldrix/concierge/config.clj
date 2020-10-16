@@ -29,9 +29,8 @@
 (defn empi-processing-id []
   (get-in root [:wales :empi :processing-id]))
 
-(defn cav-pms []
+(defn cav-pms-config []
   (get-in root [:wales :cav :pms]))
-
 
 (defn concierge-connect-config []
   (get-in root [:concierge :connect]))
