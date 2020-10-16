@@ -1,6 +1,7 @@
 (ns com.eldrix.concierge.wales.nadex
   "Integration with NHS Wales' active directory for authentication and user lookup."
-  (:require [clojure.java.io :as io]
+  (:require [clojure.string :as str]
+            [clojure.java.io :as io]
             [clojure.tools.logging.readable :as log]
             [mount.core :as mount]
             [com.eldrix.concierge.config :as config]
@@ -48,11 +49,12 @@
    "telephoneNumber" "mobile" "company" "wWWHomePage" "postOfficeBox" "thumbnailPhoto"])
 
 (def ^:private binary-attributes
+  "List of attributes that should be returned as byte arrays."
   #{"thumbnailPhoto"})
 
 (defn- parse-attr 
   "Parse an LDAP attribute into a tuple key/value pair"
-  [^com.unboundid.ldap.sdk.Attribute attr]
+  [^Attribute attr]
   (let [n (.getName attr)
         v (if (contains? binary-attributes n)
             (.getValueByteArray attr)
@@ -67,11 +69,11 @@
 
 (defn by-name [^String names]
   (Filter/createANDFilter ^Collection
-   (->> (clojure.string/split names #"\s+")
+   (->> (str/split names #"\s+")
         (map #(Filter/createORFilter [(Filter/createSubInitialFilter "sn" ^String %)
                                       (Filter/createSubInitialFilter "givenName" ^String %)])))))
 (defn by-job [^String name]
-  (Filter/createSubAnyFilter "title" (into-array String (clojure.string/split name #"\s+"))))
+  (Filter/createSubAnyFilter "title" (into-array String (str/split name #"\s+"))))
 
 (defn by-params [params]
   (let [clauses (map (fn [[k v]] (Filter/createEqualityFilter ^String (name k) ^String v)) params)]
