@@ -82,22 +82,22 @@
 (defn- parse-local-datetime [s]
   (when-not (= 0 (count s)) s (java.time.LocalDateTime/parse s dtf)))
 
-(def data-mappers
+(def ^:private data-mappers
   {:DATE_BIRTH parse-local-date
    :DATE_DEATH parse-local-date
    :DATE_LAST_MODIFIED parse-local-datetime
    :DATE_FROM parse-local-date
    :DATE_TO parse-local-date})
 
-(defn parse-column [loc]
+(defn- parse-column [loc]
   (let [k (keyword (zx/xml1-> loc  (zx/attr :name)))
         mapper (get data-mappers k)
         v (zx/xml1-> loc zx/text)]
     {k (if mapper (mapper v) v)}))
 
-(defn parse-row [loc] (apply conj (zx/xml-> loc :column parse-column)))
+(defn- parse-row [loc] (apply conj (zx/xml-> loc :column parse-column)))
 
-(defn do-sql
+(defn- do-sql
   "Perform a SQL operation against the CAV PMS backend, as defined by `sqlvec` (a vector of SQL followed by the parameters).
    Returns a map containing the keys:
    - :success?  - whether call successful or not
@@ -148,7 +148,7 @@
 (defn fetch-patients-for-clinic
   "Fetch a list of patients for a specific clinic, on the specified date."
   ([clinic-code] (fetch-patients-for-clinic clinic-code (java.time.LocalDate/now)))
-  ([clinic-code date]
+  ([clinic-code ^java.time.LocalDate date]
    (log/info "fetching patients for clinic " clinic-code "on" date)
    (let [sqlvec (fetch-patients-for-clinic-sqlvec {:clinic-code (str/upper-case clinic-code) :date-string (.format df date)})
          results (do-sql sqlvec)]
@@ -159,7 +159,7 @@
 (defn fetch-patients-for-clinics
   "Fetch a list of patients for a list of clinics."
   ([clinic-codes] (fetch-patients-for-clinics clinic-codes (java.time.LocalDate/now)))
-  ([clinic-codes date]
+  ([clinic-codes ^java.time.LocalDate date]
    (mapcat #(fetch-patients-for-clinic % date) clinic-codes)))
 
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")

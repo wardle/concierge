@@ -2,16 +2,33 @@
   (:require [com.eldrix.concierge.config :as config]
             [com.eldrix.concierge.registry :as res]
             [com.eldrix.concierge.connect :as connect]
+            [com.eldrix.concierge.ods :as ods]
             [com.eldrix.concierge.wales.empi :as empi]
             [com.eldrix.concierge.wales.nadex :as nadex]
             [com.eldrix.concierge.wales.cav.pms :as cavpms]
             [clojure.tools.logging.readable :as log]
             [mount.core :as mount]
             [clojure.string :as str]
+            [clojure.walk :as walk]
             [clojure.spec.alpha :as s])
-  (:gen-class))
+  (:gen-class
+    :name com.eldrix.concierge.Concierge
+    :init init
+    :methods [#^{:static true} [nadexSearchUsername [String] java.util.Map]]))
 
 (s/check-asserts true)
+
+(defn init []
+  (println "running init...")
+  (mount/start)
+  (println "mount finished"))
+
+(defn -nadexSearchUsername [username]
+  (let [results (nadex/search (config/nadex-default-bind-username) (config/nadex-default-bind-password) (nadex/by-username username))]
+    (if (= 1 (count results))
+      (walk/stringify-keys (first results))
+      {})))
+
 
 (defn register-resolvers
   "Registers all of the supported namespaces against the resolver.
@@ -24,12 +41,20 @@
     (doseq [uri (keys empi/authorities)] (res/register-resolver uri empi-svc)))
 
   ;; register CAV lookup - note - this will replace EMPI as resolver for CAV identifiers... TODO: blend result for Cardiff patients - e.g. for telephones
-  (res/register-resolver  "https://fhir.cavuhb.nhs.wales/Id/pas-identifier" (cavpms/->CAVService) )
-  
+  (res/register-resolver "https://fhir.cavuhb.nhs.wales/Id/pas-identifier" (cavpms/->CAVService))
+
   ;; register NADEX directory lookup
   (let [nadex-svc (nadex/->NadexService (config/nadex-default-bind-username) (config/nadex-default-bind-password))]
     (res/register-resolver "https://fhir.nhs.wales/Id/cymru-user-id" nadex-svc)
-    (res/register-freetext-searcher "https://fhir.nhs.wales/Id/cymru-user-id" nadex-svc)))
+    (res/register-freetext-searcher "https://fhir.nhs.wales/Id/cymru-user-id" nadex-svc))
+
+  (let [organisation-svc (ods/->OdsOrganisationService)]
+    (res/register-resolver "https://fhir.nhs.uk/Id/ods-organization-code" organisation-svc)
+    (res/register-freetext-searcher "https://fhir.nhs.uk/Id/ods-organization-code" organisation-svc))
+
+  (let [postcode-svc (ods/->PostcodeService)]
+    (res/register-resolver postcode-svc))
+  )
 
 (defn run-connect-client
   [_]
@@ -71,6 +96,8 @@
 
 (comment
   (mount/start)
+  (-init)
+  (-nadexSearchUsername "ma090906")
   (-main "connect-server")
   (register-resolvers)
   (res/log-status)

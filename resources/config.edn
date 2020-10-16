@@ -4,18 +4,21 @@
              :nadex {:connection-pool-size  5
                      :default-bind-username #ref [:secrets :nadex-bind-username]
                      :default-bind-password #ref [:secrets :nadex-bind-password]}
-             :cav {:pms {:username #ref [:secrets :cav-pms-username]
-                         :password #ref [:secrets :cav-pms-password]
-                         :database "vpmslive.world"
-                         :user-string "patientcare-concierge"}}}
- :concierge {:connect {:server-host          "35.178.8.43"
-                       :server-port          443
+             :cav   {:pms {:username    #ref [:secrets :cav-pms-username]
+                           :password    #ref [:secrets :cav-pms-password]
+                           :database    "vpmslive.world"
+                           :user-string "patientcare-concierge"}}}
+ :clods     {:dbtype "postgresql"
+             :dbname "ods"
+             :maximumPoolSize 5}
+ :concierge {:connect {:server-host                 "35.178.8.43"
+                       :server-port                 443
                        :internal-client-public-key  "test/resources/ecpubkey.pem"
                        :internal-client-private-key "test/resources/ecprivkey.pem"
                        :external-client-public-key  "test/resources/ecpubkey.pem"
-                       :ssl-config {:key-cert-chain-file "host.cert" :key-file "host.key"}
-                       :retry-milliseconds   5000
-                       :timeout-milliseconds 3000}}
+                       :ssl-config                  {:key-cert-chain-file "host.cert" :key-file "host.key"}
+                       :retry-milliseconds          5000
+                       :timeout-milliseconds        3000}}
 
  :https     #profile {:live {:proxy-host "137.4.60.101"
                              :proxy-port 8080}}

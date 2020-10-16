@@ -20,17 +20,18 @@
   "Creates a secure but unauthenticated connection, trusting all server certificates."
   []
   (LDAPConnection.
-   (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.)))
-   (doto (LDAPConnectionOptions.)
-     (.setConnectTimeoutMillis 2000)
-     (.setFollowReferrals false))
-   "cymru.nhs.uk"
-   636))
+    (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.)))
+    (doto (LDAPConnectionOptions.)
+      (.setConnectTimeoutMillis 2000)
+      (.setFollowReferrals false))
+    "cymru.nhs.uk"
+    636))
 
 (defonce ^LDAPConnectionPool connection-pool
-  (delay
-   (log/info "creating LDAP connection pool; size:" (config/nadex-connection-pool-size))
-   (LDAPConnectionPool. (make-unauthenticated-connection) (or 5 (config/nadex-connection-pool-size)))))
+         (delay
+           (let [size (or (config/nadex-connection-pool-size) 5)]
+             (log/info "creating LDAP connection pool; size:" size)
+             (LDAPConnectionPool. (make-unauthenticated-connection) size))))
 
 (defn can-authenticate?
   "Can the user 'username' authenticate using the 'password' specified?"
@@ -52,7 +53,7 @@
   "List of attributes that should be returned as byte arrays."
   #{"thumbnailPhoto"})
 
-(defn- parse-attr 
+(defn- parse-attr
   "Parse an LDAP attribute into a tuple key/value pair"
   [^Attribute attr]
   (let [n (.getName attr)
@@ -62,16 +63,16 @@
     [(keyword n) v]))
 
 (defn parse-entry [^com.unboundid.ldap.sdk.SearchResultEntry result]
-    (into {} (map parse-attr (.getAttributes result))))
+  (into {} (map parse-attr (.getAttributes result))))
 
 (defn by-username [^String username]
   (Filter/createEqualityFilter "sAMAccountName" username))
 
 (defn by-name [^String names]
   (Filter/createANDFilter ^Collection
-   (->> (str/split names #"\s+")
-        (map #(Filter/createORFilter [(Filter/createSubInitialFilter "sn" ^String %)
-                                      (Filter/createSubInitialFilter "givenName" ^String %)])))))
+                          (->> (str/split names #"\s+")
+                               (map #(Filter/createORFilter [(Filter/createSubInitialFilter "sn" ^String %)
+                                                             (Filter/createSubInitialFilter "givenName" ^String %)])))))
 (defn by-job [^String name]
   (Filter/createSubAnyFilter "title" (into-array String (str/split name #"\s+"))))
 
@@ -87,14 +88,15 @@
    credentials and the 'filter' specified."
   ([username password] (search username password (by-username username)))
   ([bind-username bind-password ^Filter search-filter]
+   {:pre [bind-username bind-password]}
    (log/info "ldap bind with username " bind-username "filter:" (.toNormalizedString search-filter))
    (with-open [c (.getConnection @connection-pool)]
      (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
      (let [results (.search c (SearchRequest.
-                               "DC=cymru,DC=nhs,DC=uk"
-                               SearchScope/SUB
-                               (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
-                               (into-array String returning-attributes)))]
+                                "DC=cymru,DC=nhs,DC=uk"
+                                SearchScope/SUB
+                                (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
+                                (into-array String returning-attributes)))]
        (map parse-entry (.getSearchEntries results))))))
 
 (deftype NadexService [username password]
@@ -121,7 +123,7 @@
 
   (with-open [writer (io/writer "out-file.csv")]
     (clojure.data.csv/write-csv writer ortho))
-  
+
   (def jc (search bind-username bind-password (by-name "Chess")))
   jc
   (type (:thumbnailPhoto (first jc)))
