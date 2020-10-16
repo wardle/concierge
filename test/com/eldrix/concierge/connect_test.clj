@@ -1,4 +1,4 @@
-(ns com.eldrix.concierge.wales.connect-test
+(ns com.eldrix.concierge.connect-test
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
             [com.eldrix.concierge.connect :as connect]
