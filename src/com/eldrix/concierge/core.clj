@@ -3,6 +3,9 @@
             [com.eldrix.concierge.registry :as res]
             [com.eldrix.concierge.connect :as connect]
             [com.eldrix.concierge.ods :as ods]
+            [com.eldrix.concierge.hermes :as hermes]
+            [com.eldrix.clods.db :as db]
+            [com.eldrix.clods.postcode :as postcode]
             [com.eldrix.concierge.wales.empi :as empi]
             [com.eldrix.concierge.wales.nadex :as nadex]
             [com.eldrix.concierge.wales.cav.pms :as cavpms]
@@ -12,23 +15,13 @@
             [clojure.walk :as walk]
             [clojure.spec.alpha :as s])
   (:gen-class
-    :name com.eldrix.concierge.Concierge
+    :name com.eldrix.concierge.Core
     :init init
-    :methods [#^{:static true} [nadexSearchUsername [String] java.util.Map]]))
+    :methods [[resolve [String String] java.util.Map]
+              [search [String String] java.util.Collection]
+              [structuredSearch [String java.util.Map] java.util.Collection]]))
 
 (s/check-asserts true)
-
-(defn init []
-  (println "running init...")
-  (mount/start)
-  (println "mount finished"))
-
-(defn -nadexSearchUsername [username]
-  (let [results (nadex/search (config/nadex-default-bind-username) (config/nadex-default-bind-password) (nadex/by-username username))]
-    (if (= 1 (count results))
-      (walk/stringify-keys (first results))
-      {})))
-
 
 (defn register-resolvers
   "Registers all of the supported namespaces against the resolver.
@@ -50,11 +43,31 @@
 
   (let [organisation-svc (ods/->OdsOrganisationService)]
     (res/register-resolver "https://fhir.nhs.uk/Id/ods-organization-code" organisation-svc)
+    (res/register-structured-searcher "https://fhir.nhs.uk/Id/ods-organization-code" organisation-svc)
     (res/register-freetext-searcher "https://fhir.nhs.uk/Id/ods-organization-code" organisation-svc))
 
   (let [postcode-svc (ods/->PostcodeService)]
-    (res/register-resolver postcode-svc))
+    (res/register-resolver "https://statistics.gov.uk/datasets/nhs-postcode#PCDS" postcode-svc))
+
+  (let [snomed-svc (hermes/->HermesService)]
+    (res/register-resolver "http://snomed.info/sct" snomed-svc)
+    (res/register-structured-searcher "http://snomed.info/sct" snomed-svc))
   )
+
+
+(defn -init []
+  (mount/start)
+  (register-resolvers)
+  (println "mount finished"))
+
+(defn -resolve [_ namespace value]
+  (walk/stringify-keys (res/resolve-identifier namespace value)))
+
+(defn -search [_ namespace s]
+  (walk/stringify-keys (res/freetext-search namespace s)))
+
+(defn -structuredSearch [_ namespace params]
+  (walk/stringify-keys (res/structured-search namespace (walk/keywordize-keys (into {} params)))))
 
 (defn run-connect-client
   [_]
@@ -97,8 +110,19 @@
 (comment
   (mount/start)
   (-init)
-  (-nadexSearchUsername "ma090906")
-  (-main "connect-server")
   (register-resolvers)
   (res/log-status)
-  (res/resolve-identifier "https://fhir.ctmuhb.wales.nhs.uk/Id/pas-identifier" "wibble"))
+  (res/resolve-identifier "https://fhir.nhs.uk/Id/ods-organization-code", "7A4BV")
+  (res/freetext-search "https://fhir.nhs.uk/Id/ods-organization-code" "castle gate")
+  (res/structured-search "https://fhir.nhs.uk/Id/ods-organization-code" {:name "monmouth" :role "RO72" :postcode "CF14 4XW"})
+  (postcode/distance-between (db/fetch-postcode "CF14 4XW") (db/fetch-postcode "B30 1HL"))
+  (res/freetext-search "https://fhir.nhs.uk/Id/ods-organization-code" "castle gate")
+
+  (res/resolve-identifier "http://snomed.info/sct", 24700007)
+  (res/structured-search "http://snomed.info/sct" {:s "multiple sclerosis" :max-hits 1})
+
+
+
+
+  (search-named-org-near "Whitchurch" "CF14 4XW")
+  )

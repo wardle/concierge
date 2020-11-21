@@ -17,17 +17,17 @@
           digits (map #(- (int %) (int \0)) nnn)            ;; convert string into integers
           weights (range 10 1 -1)                           ;; the weights running from 10 down to 2
           total (reduce + (map * digits weights))           ;; multiply and total
-          calc (- 11 (mod total 11))]                       ;; what we think should be the check digit
-      (cond (= cd calc) true
-            (and (= 11 calc) (= cd 0)) true))))
+          c1 (- 11 (mod total 11))                          ;; what we think should be the check digit
+          c2 (if (= 11 c1) 0 c1)]                           ;; corrective fix when result is 11
+      (= cd c2))))
 
-(defn format
+(defn format-nnn
   "Formats an NHS number for display purposes into 'XXX XXX XXXX'"
   [nnn]
   (apply str (remove nil? (interleave nnn [nil nil " " nil nil " " nil nil nil nil]))))
 
-
-
+(comment
+  (valid? "1111111111"))
 
 
 

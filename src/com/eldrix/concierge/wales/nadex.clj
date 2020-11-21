@@ -86,6 +86,7 @@
   "Search for the user specified, either using their own credentials (and
    implicitly searching for themselves, or using specific generic binding
    credentials and the 'filter' specified."
+  ([^Filter search-filter] (search (config/nadex-default-bind-username) (config/nadex-default-bind-password) search-filter))
   ([username password] (search username password (by-username username)))
   ([bind-username bind-password ^Filter search-filter]
    {:pre [bind-username bind-password]}
@@ -104,7 +105,7 @@
   (resolve-id [this system value]
     (search username password (by-username value)))
   StructuredSearcher
-  (search-by-map [this system params]
+  (search-by-data [this system params]
     (search username password (by-params params)))
   FreetextSearcher
   (search-by-text [this system value]

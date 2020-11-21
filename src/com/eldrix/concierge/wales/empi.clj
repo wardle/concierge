@@ -69,7 +69,7 @@
 
    "https://fhir.cavuhb.nhs.wales/Id/pas-identifier"
    {:authority    "140" :authority-type "PI" :oid "2.16.840.1.113883.2.1.8.1.5.140"
-    :organization {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48" :value "RWMBV"}}
+    :organization {:system "urn:oid:2.16.840.1.113883.2.1.3.2.4.18.48" :value "7A4"}}
 
    "https://fhir.hduhb.nhs.wales/Id/pas-identifier"
    {:authority "149" :authority-type "PI"}
