@@ -13,8 +13,6 @@
 
            com.eldrix/clods                {:git/url "https://github.com/wardle/clods.git"
                                             :sha     "f83d276e4087b9ee7c9bf176a4ba65549c809dcf"}
-           com.eldrix/hermes               {:git/url "https://github.com/wardle/hermes.git"
-                                            :sha     "dbb3df247556a20550c910cf4a91764728896516"}
 
            aero/aero                       {:mvn/version "1.1.6"}
            aleph/aleph                     {:mvn/version "0.4.7-alpha7"}
@@ -28,6 +26,8 @@
            mount/mount                     {:mvn/version "0.1.16"}
            ring/ring-defaults              {:mvn/version "0.3.2"}
            selmer/selmer                   {:mvn/version "1.12.31"}}
+           com.eldrix/hermes                        {:git/url "https://github.com/wardle/hermes.git"
+                                                     :sha     "d32d7b599ff9c087c67e16545fadaf7595830432"}
 
  :aliases {:test     {:extra-paths ["test" "test/resources"]
                       :extra-deps  {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"

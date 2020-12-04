@@ -1,17 +1,16 @@
 (ns com.eldrix.concierge.hermes
-  (:require [com.eldrix.hermes.service :as svc]
+  (:require [com.eldrix.hermes.terminology :as terminology]
             [mount.core :as mount]
+            [com.eldrix.concierge.registry]
             [com.eldrix.concierge.config :as config])
   (:import (com.eldrix.concierge.registry Resolver StructuredSearcher)
-           (com.eldrix.hermes.service SnomedService)))
+           (com.eldrix.hermes.terminology SnomedService)))
 
 
 (defonce ^SnomedService svc (atom nil))
 
 (mount/defstate snomed
-                :start (reset! svc (svc/open-service
-                                     (:store-filename (config/hermes-config))
-                                     (:search-filename (config/hermes-config))))
+                :start (reset! svc (terminology/open-service (:path (config/hermes-config))))
                 :stop (.close @svc))
 
 (deftype HermesService []
@@ -24,4 +23,10 @@
 
 (comment
   (mount/start)
-  (mount/stop))
+  (mount/stop)
+  (require 'com.eldrix.concierge.core)
+  (com.eldrix.concierge.core/register-resolvers)
+  (com.eldrix.concierge.registry/log-status)
+  (com.eldrix.concierge.registry/resolve-identifier "http://snomed.info/sct" 24700007)
+  (com.eldrix.concierge.registry/structured-search "http://snomed.info/sct" {:s "multiple sclerosis" :max-hits 1})
+  )

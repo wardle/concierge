@@ -11,8 +11,7 @@
  :clods     {:dbtype "postgresql"
              :dbname "ods"
              :maximumPoolSize 5}
- :hermes {:store-filename "/Users/mark/Dev/hermes/snomed.db"
-          :search-filename "/Users/mark/Dev/hermes/search.db"}
+ :hermes {:path "/Users/mark/Dev/hermes/snomed.db"}
  :concierge {:connect {:server-host                 "35.178.8.43"
                        :server-port                 443
                        :internal-client-public-key  "test/resources/ecpubkey.pem"
