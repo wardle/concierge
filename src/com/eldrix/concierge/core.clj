@@ -119,7 +119,7 @@
   (res/freetext-search "https://fhir.nhs.uk/Id/ods-organization-code" "castle gate")
 
   (res/resolve-identifier "http://snomed.info/sct", 24700007)
-  (res/structured-search "http://snomed.info/sct" {:s "multiple sclerosis" :max-hits 1})
+  (res/structured-search "http://snomed.info/sct" {:s "multiple sclerosis" :max-hits 10})
 
 
 

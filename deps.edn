@@ -1,33 +1,38 @@
 {
  :paths   ["src" "resources" "classes"]
 
- :deps    {org.clojure/clojure             {:mvn/version "1.10.1"}
-           org.clojure/core.async          {:mvn/version "1.3.610"}
-           org.clojure/core.cache          {:mvn/version "1.0.207"}
-           org.clojure/data.xml            {:mvn/version "0.2.0-alpha6"}
-           org.clojure/data.zip            {:mvn/version "1.0.0"}
-           org.clojure/tools.cli           {:mvn/version "1.0.194"}
-           org.clojure/tools.logging       {:mvn/version "1.1.0"}
+ :deps    {org.clojure/clojure                      {:mvn/version "1.10.1"}
+           org.clojure/core.async                   {:mvn/version "1.3.610"}
+           org.clojure/core.cache                   {:mvn/version "1.0.207"}
+           org.clojure/data.xml                     {:mvn/version "0.2.0-alpha6"}
+           org.clojure/data.json                    {:mvn/version "1.0.0"}
+           org.clojure/data.zip                     {:mvn/version "1.0.0"}
+           org.clojure/tools.cli                    {:mvn/version "1.0.194"}
+           org.clojure/tools.logging                {:mvn/version "1.1.0"}
 
-           ch.qos.logback/logback-classic  {:mvn/version "1.2.3"}
+           ch.qos.logback/logback-classic           {:mvn/version "1.2.3"}
 
-           com.eldrix/clods                {:git/url "https://github.com/wardle/clods.git"
-                                            :sha     "f83d276e4087b9ee7c9bf176a4ba65549c809dcf"}
-
-           aero/aero                       {:mvn/version "1.1.6"}
-           aleph/aleph                     {:mvn/version "0.4.7-alpha7"}
-           buddy/buddy                     {:mvn/version "2.0.0"}
-           clj-http/clj-http               {:mvn/version "3.10.3"}
-           compojure/compojure             {:mvn/version "1.6.2"}
-           com.layerware/hugsql-core       {:mvn/version "0.5.1"}
-           com.unboundid/unboundid-ldapsdk {:mvn/version "5.1.1"}
-           com.wsscode/pathom              {:mvn/version "2.3.0-alpha17"}
-
-           mount/mount                     {:mvn/version "0.1.16"}
-           ring/ring-defaults              {:mvn/version "0.3.2"}
-           selmer/selmer                   {:mvn/version "1.12.31"}}
+           com.eldrix/clods                         {:git/url "https://github.com/wardle/clods.git"
+                                                     :sha     "f83d276e4087b9ee7c9bf176a4ba65549c809dcf"}
            com.eldrix/hermes                        {:git/url "https://github.com/wardle/hermes.git"
-                                                     :sha     "d32d7b599ff9c087c67e16545fadaf7595830432"}
+                                                     :sha     "1ff281b5966e6314bd23d0dfaf4d360f2f3d81c1"}
+
+           aero/aero                                {:mvn/version "1.1.6"}
+           aleph/aleph                              {:mvn/version "0.4.7-alpha7"}
+           buddy/buddy                              {:mvn/version "2.0.0"}
+           ca.uhn.hapi.fhir/hapi-fhir-base          {:mvn/version "5.2.0"}
+           ca.uhn.hapi.fhir/hapi-fhir-server        {:mvn/version "5.2.0"}
+           ca.uhn.hapi.fhir/hapi-fhir-structures-r4 {:mvn/version "5.2.0"}
+
+           clj-http/clj-http                        {:mvn/version "3.10.3"}
+           compojure/compojure                      {:mvn/version "1.6.2"}
+           com.layerware/hugsql-core                {:mvn/version "0.5.1"}
+           com.unboundid/unboundid-ldapsdk          {:mvn/version "5.1.1"}
+           com.wsscode/pathom                       {:mvn/version "2.3.0-alpha17"}
+
+           mount/mount                              {:mvn/version "0.1.16"}
+           ring/ring-defaults                       {:mvn/version "0.3.2"}
+           selmer/selmer                            {:mvn/version "1.12.31"}}
 
  :aliases {:test     {:extra-paths ["test" "test/resources"]
                       :extra-deps  {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
