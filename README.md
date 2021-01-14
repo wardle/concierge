@@ -1,5 +1,9 @@
 # Concierge
 
+
+[![Scc Count Badge](https://sloc.xyz/github/wardle/concierge)](https://github.com/wardle/concierge/)
+[![Scc Cocomo Badge](https://sloc.xyz/github/wardle/concierge?category=cocomo&avg-wage=100000)](https://github.com/wardle/concierge/)
+
 Concierge is a suite of health and care integration modules, abstracting and simplifing integrations with underlying health and care systems. 
 	
 > A concierge assists guests. This concierge assists clients to integrate into the local health and care ecosystem.
