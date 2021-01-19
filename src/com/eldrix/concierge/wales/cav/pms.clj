@@ -76,18 +76,27 @@
   "CAV compatible DateFormatter; immutable and thread safe."
   (java.time.format.DateTimeFormatter/ofPattern "yyyy/MM/dd"))
 
+(def ^:private ^java.time.format.DateTimeFormatter tf
+  "CAV compatible DateTimeFormatter for times; immutable and thread safe."
+  (java.time.format.DateTimeFormatter/ofPattern "HH:mm"))
+
 (defn- parse-local-date [s]
   (when-not (= 0 (count s)) (java.time.LocalDate/parse s df)))
 
 (defn- parse-local-datetime [s]
   (when-not (= 0 (count s)) s (java.time.LocalDateTime/parse s dtf)))
 
+(defn- parse-time [s]
+  (when s (java.time.LocalTime/parse s tf)))
+
 (def ^:private data-mappers
   {:DATE_BIRTH parse-local-date
    :DATE_DEATH parse-local-date
    :DATE_LAST_MODIFIED parse-local-datetime
    :DATE_FROM parse-local-date
-   :DATE_TO parse-local-date})
+   :DATE_TO parse-local-date
+   :START_TIME parse-time
+   :END_TIME parse-time})
 
 (defn- parse-column [loc]
   (let [k (keyword (zx/xml1-> loc  (zx/attr :name)))
@@ -243,9 +252,10 @@
                                 :f "test/resources/dummy.pdf"}))
 
   (parse-receive-by-crn-response response)
- 
-  (fetch-patients-for-clinics ["neur58r"] (java.time.LocalDate/parse "2020/10/09" df))
 
+  (def clinic-patients (fetch-patients-for-clinics ["neur58r" "neur58"] (java.time.LocalDate/parse "2020/10/09" df)))
+  (clojure.pprint/print-table (map #(select-keys % [:CONTACT_TYPE_DESC :START_TIME :END_TIME :HOSPITAL_ID :LAST_NAME :FIRST_FORENAME]) clinic-patients))
+  (clojure.pprint/pprint clinic-patients)
   (def pt (fetch-patient-by-crn "A999998"))
 
   (clojure.pprint/pprint (dissoc pt :ADDRESSES))
