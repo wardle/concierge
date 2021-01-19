@@ -87,7 +87,10 @@
   (when-not (= 0 (count s)) s (java.time.LocalDateTime/parse s dtf)))
 
 (defn- parse-time [s]
-  (when s (java.time.LocalTime/parse s tf)))
+  (when s 
+    (try (java.time.LocalTime/parse s tf) 
+         (catch java.time.format.DateTimeParseException e 
+           (log/error "error parsing time: " e)))))
 
 (def ^:private data-mappers
   {:DATE_BIRTH parse-local-date
@@ -254,7 +257,12 @@
   (parse-receive-by-crn-response response)
 
   (def clinic-patients (fetch-patients-for-clinics ["neur58r" "neur58"] (java.time.LocalDate/parse "2020/10/09" df)))
-  (clojure.pprint/print-table (map #(select-keys % [:CONTACT_TYPE_DESC :START_TIME :END_TIME :HOSPITAL_ID :LAST_NAME :FIRST_FORENAME]) clinic-patients))
+
+  (clojure.pprint/print-table
+   (->> clinic-patients
+        (map #(select-keys % [:CONTACT_TYPE_DESC :START_TIME :END_TIME :HOSPITAL_ID :LAST_NAME :FIRST_FORENAME]))
+        (sort-by :START_TIME)))
+  
   (clojure.pprint/pprint clinic-patients)
   (def pt (fetch-patient-by-crn "A999998"))
 
