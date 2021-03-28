@@ -95,6 +95,40 @@ This is a `clojure` re-write of an original `golang`-based experiment.
 It is designed to provide modules that permit integration with a health and care ecosystem, abstracting services mainly using 
 namespaced identifiers and first-class identifier resolution and mapping.
 
-To build an uberjar that can be copied into legacy applications:
+#### Development
 
+Run compilation checks
+
+```shell
+clj -M:check
+```
+
+Linting
+
+```shell
+clj -M:lint/eastwood
+clj -M:lint/kondo
+```
+
+Run unit tests
+
+```shell
+clj -M:test/unit
+```
+
+Run integration tests
+
+(You'll need to be running within the NHS Wales network - and have the right network access / firewall permissions)
+
+```shell
+clj -M:test/live
+```
+
+#### Building
+
+To build an uberjar that can be copied into legacy applications:
 clj -M:uberjar; cp target/concierge-full-v0.1.0.jar ~/Dev/rsdb/Frameworks/RSJars/Libraries  
+
+#### Use as a library
+
+Add using deps.edn
