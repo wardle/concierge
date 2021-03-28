@@ -4,16 +4,22 @@
    [clojure.string :as str]
    [clojure.java.io :as io]
    [clojure.data.xml :as xml]
+   [clojure.spec.alpha :as s]
    [clojure.zip :as zip]
    [clojure.data.zip.xml :as zx]
    [clojure.tools.logging.readable :as log]
-   [com.eldrix.concierge.config :as config]
-   [com.eldrix.concierge.registry :refer [Resolver]]
    [clj-http.client :as client]
    [hugsql.core :as hugsql]
-   [mount.core :as mount]
    [selmer.parser])
-  (:import java.time.LocalDateTime))
+  (:import (java.time LocalTime LocalDate LocalDateTime)
+           (java.time.format DateTimeFormatter DateTimeParseException)
+           (java.io ByteArrayOutputStream)))
+
+(s/def ::username string?)
+(s/def ::password string?)
+(s/def ::database string?)
+(s/def ::user-string string?)
+(s/def ::opts (s/keys :req-un [::username ::password ::database ::user-string]))
 
 ;; (hugsql/def-db-fns "com/eldrix/concierge/wales/cav/pms.sql")
 (declare fetch-patient-by-crn-sqlvec)
@@ -27,8 +33,12 @@
                {:form-params {:XmlDataBlockIn request-xml}}))
 
 (defn do-login
-  [& {:as opts}]
-  (let [req-xml (selmer.parser/render-file (io/resource "wales/cav/login-req.xml") (merge (config/cav-pms-config) opts))
+  "Performs a login operation, returning an authentication token if successful.
+   Parameters: 
+     opts : a map containing username, password, database and user-string."
+  [{:keys [username password database user-string] :as opts}]
+  {:pre [(s/valid? ::opts opts)]}
+  (let [req-xml (selmer.parser/render-file (io/resource "wales/cav/login-req.xml") opts)
         resp (-> (perform-get-data req-xml)
                  :body
                  xml/parse-str
@@ -46,19 +56,22 @@
   "Get a valid authentication token, either by re-using an existing
    valid token, or by requesting a new token from the web service.
    Parameters
-   - :force?     - force a request for a new token"
-  [& {:keys [force?]}]
+   - opts     : connection configuration as per specification ::opts with the additional
+   - force?   : force a request for a new token even if we already have active one."
+  ([opts] (get-authentication-token opts false))
+  ([opts force?]
+  {:pre [(s/valid? ::opts opts)]}
   (let [token @authentication-token
         expires (:expires token)
         now (LocalDateTime/now)]
     (if (and (not force?) expires (.isBefore now expires))
       (do (log/info "reusing existing valid authentication token" (:token token))
           (:token token))
-      (when-let [new-token (do-login)]
+      (when-let [new-token (do-login opts)]
         (println "requested new authentication token: " new-token)
         (reset! authentication-token {:token new-token
                                       :expires (.plusMinutes now 10)})
-        new-token))))
+        new-token)))))
 
 (defn sqlvec->query
   "Convert a `sqlvec` to a SQL string."
@@ -68,28 +81,28 @@
       (recur (str/replace-first q #"\?" (str "'" (first vals) "'")) (rest vals))
       q)))
 
-(def ^:private ^java.time.format.DateTimeFormatter dtf
+(def ^:private ^DateTimeFormatter dtf
   "CAV compatible DateTimeFormatter; immutable and thread safe."
-  (java.time.format.DateTimeFormatter/ofPattern "yyyy/MM/dd HH:mm:ss"))
+  (DateTimeFormatter/ofPattern "yyyy/MM/dd HH:mm:ss"))
 
-(def ^:private ^java.time.format.DateTimeFormatter df
+(def ^:private ^DateTimeFormatter df
   "CAV compatible DateFormatter; immutable and thread safe."
-  (java.time.format.DateTimeFormatter/ofPattern "yyyy/MM/dd"))
+  (DateTimeFormatter/ofPattern "yyyy/MM/dd"))
 
-(def ^:private ^java.time.format.DateTimeFormatter tf
+(def ^:private ^DateTimeFormatter tf
   "CAV compatible DateTimeFormatter for times; immutable and thread safe."
-  (java.time.format.DateTimeFormatter/ofPattern "HH:mm"))
+  (DateTimeFormatter/ofPattern "HH:mm"))
 
 (defn- parse-local-date [s]
-  (when-not (= 0 (count s)) (java.time.LocalDate/parse s df)))
+  (when-not (= 0 (count s)) (LocalDate/parse s df)))
 
 (defn- parse-local-datetime [s]
-  (when-not (= 0 (count s)) s (java.time.LocalDateTime/parse s dtf)))
+  (when-not (= 0 (count s)) s (LocalDateTime/parse s dtf)))
 
 (defn- parse-time [s]
   (when s 
-    (try (java.time.LocalTime/parse s tf) 
-         (catch java.time.format.DateTimeParseException e 
+    (try (LocalTime/parse s tf)
+         (catch DateTimeParseException e
            (log/error "error parsing time: " e)))))
 
 (def ^:private data-mappers
@@ -116,9 +129,10 @@
    - :message   - message from backend service
    - :row-count - number of rows returned
    - :body      - actual data returned, transformed into a sequence of maps."
-  [sqlvec]
+  [opts sqlvec]
+  {:pre [(s/valid? ::opts opts) (vector? sqlvec)]}
   (let [req (selmer.parser/render-file (io/resource "wales/cav/sql-req.xml")
-                                       {:authentication-token (get-authentication-token)
+                                       {:authentication-token (get-authentication-token opts)
                                         :sql-text  (sqlvec->query sqlvec)})
         parsed-xml  (-> (perform-get-data req)
                         :body
@@ -146,11 +160,12 @@
   "Fetch a patient by CRN. We obtain the address history and so have multiple rows returned; we use
    the first row for the core patient information and manipulate the returned data to add an 'ADDRESSES'
    property containing the address history."
-  [crn]
+  [opts crn]
+  {:pre [(s/valid? ::opts opts) (string? crn)]}
   (when-let [crn-map (parse-crn crn)]
     (log/info "fetching patient " crn)
     (let [sqlvec (fetch-patient-by-crn-sqlvec crn-map)
-          results (do-sql sqlvec)]
+          results (do-sql opts sqlvec)]
       (when-not (:success? results)
         (log/error "failed to fetch patient with CRN:" crn (:message results)))
       (when-not (= 0 (:row-count results))
@@ -159,20 +174,22 @@
 
 (defn fetch-patients-for-clinic
   "Fetch a list of patients for a specific clinic, on the specified date."
-  ([clinic-code] (fetch-patients-for-clinic clinic-code (java.time.LocalDate/now)))
-  ([clinic-code ^java.time.LocalDate date]
+  ([opts clinic-code] (fetch-patients-for-clinic opts clinic-code (LocalDate/now)))
+  ([opts clinic-code ^LocalDate date]
+   {:pre [(s/valid? ::opts opts) (string? clinic-code)]}
    (log/info "fetching patients for clinic " clinic-code "on" date)
    (let [sqlvec (fetch-patients-for-clinic-sqlvec {:clinic-code (str/upper-case clinic-code) :date-string (.format df date)})
-         results (do-sql sqlvec)]
+         results (do-sql opts sqlvec)]
      (if-not (:success? results)
        (log/error "failed to fetch clinic patients" clinic-code "on" date)
        (:body results)))))
 
 (defn fetch-patients-for-clinics
   "Fetch a list of patients for a list of clinics."
-  ([clinic-codes] (fetch-patients-for-clinics clinic-codes (java.time.LocalDate/now)))
-  ([clinic-codes ^java.time.LocalDate date]
-   (mapcat #(fetch-patients-for-clinic % date) clinic-codes)))
+  ([opts clinic-codes] (fetch-patients-for-clinics opts clinic-codes (LocalDate/now)))
+  ([opts clinic-codes ^LocalDate date]
+   {:pre [(s/valid? ::opts opts) (coll? clinic-codes)]}
+   (mapcat #(fetch-patients-for-clinic opts % date) clinic-codes)))
 
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
 (xml/alias-uri :cav "http://localhost/PMSInterfaceWebService")
@@ -211,7 +228,7 @@
   "Turn a file/string/inputstream/socket/url into a byte array."
   [f]
   (with-open [xin (io/input-stream f)
-              xout (java.io.ByteArrayOutputStream.)]
+              xout (ByteArrayOutputStream.)]
     (io/copy xin xout)
     (.toByteArray xout)))
 
@@ -239,16 +256,7 @@
                                 :xml (make-receivefilebycrn-request opts)}))
 
 
-(deftype CAVService []
-  Resolver
-  (resolve-id [this system value]
-    (fetch-patient-by-crn value)))
-
 (comment
-  (mount/start)
-  (mount/stop)
-  (config/cav-pms-config)
-
   (def response (post-document {:crn "A999998"
                                 :uid "patientcare 004"
                                 :description "Test letter patientcare/concierge"
@@ -256,28 +264,34 @@
 
   (parse-receive-by-crn-response response)
 
-  (def clinic-patients (fetch-patients-for-clinics ["neur58r" "neur58"] (java.time.LocalDate/parse "2020/10/09" df)))
+  (require '[com.eldrix.concierge.config])
+  (require '[clojure.pprint :as pp])
+  (def opts (:wales.nhs.cav/pms (#'com.eldrix.concierge.config/config :live)))
+  opts
+  (s/valid? ::opts opts)
+  (s/explain ::opts opts)
+  (type (:username opts))
+  (def clinic-patients (fetch-patients-for-clinics opts ["neur58r" "neur58"] (LocalDate/parse "2020/10/09" df)))
 
-  (clojure.pprint/print-table
+  (pp/print-table
    (->> clinic-patients
         (map #(select-keys % [:CONTACT_TYPE_DESC :START_TIME :END_TIME :HOSPITAL_ID :LAST_NAME :FIRST_FORENAME]))
         (sort-by :START_TIME)))
-  
-  (clojure.pprint/pprint clinic-patients)
-  (def pt (fetch-patient-by-crn "A999998"))
 
-  (clojure.pprint/pprint (dissoc pt :ADDRESSES))
-  (clojure.pprint/pprint  pt)
+  (pp/pprint clinic-patients)
+  (def pt (fetch-patient-by-crn opts "A999998"))
 
+  (pp/pprint (dissoc pt :ADDRESSES))
+  (pp/pprint  pt)
 
-  (get-authentication-token)
+  (get-authentication-token opts)
   (def sql (fetch-patient-by-crn-sqlvec {:crn "999998" :type "A"}))
 
-  (do-sql sql)
+  (do-sql opts sql)
   sql
   (sqlvec->query sql)
   (def req-xml (selmer.parser/render-file (io/resource "wales/cav/sql-req.xml")
-                                          {:authentication-token (get-authentication-token)
+                                          {:authentication-token (get-authentication-token opts)
                                            :sql-text  (sqlvec->query sql)}))
   (println req-xml)
   (def response (perform-get-data req-xml))

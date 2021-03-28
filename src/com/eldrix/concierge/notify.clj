@@ -2,7 +2,6 @@
   "gov.uk Notify integration"
   (:require [clojure.string :as str]
             [clj-http.client :as client]
-            [com.eldrix.concierge.config :as config]
             [buddy.sign.jwt :as jwt]))
 
 (defn parse-api-key [k]

@@ -1,6 +1,5 @@
 # Concierge
 
-
 [![Scc Count Badge](https://sloc.xyz/github/wardle/concierge)](https://github.com/wardle/concierge/)
 [![Scc Cocomo Badge](https://sloc.xyz/github/wardle/concierge?category=cocomo&avg-wage=100000)](https://github.com/wardle/concierge/)
 
@@ -57,13 +56,18 @@ It currently supports the following integrations:
 * A wrapper around the NHS Wales' enterprise master patient index (EMPI).
 * Staff authentication and lookup via the national directory service (NADEX) to provide staff identity services
 * Staff lookup
-* SNOMED CT
 * Cardiff and Vale Patient Administative System (PAS) integration - for demographics and appointments/scheduling.
 * Cardiff and Vale Document Repository service
-* Organisational data services and postcode lookup / geographical data.
 * Sending text messages using the gov.uk Notify service.
 
-It also supports a generic service mechanism based on identifiers:
+I have also built standalone libraries (embeddable into larger applications) and microservices
+to support:
+
+* SNOMED CT - see [hermes](https://github.com/wardle/hermes)
+* Organisational data services and postcode lookup / geographical data - see [clods](https://github.com/wardle/clods) and [nhspd](https://github.com/wardle/nhspd)
+
+These individual components are re-combined in my server-side software, with 
+support for a generic service mechanism based on identifiers:
 
 * System/value ("identifier") resolution and mapping for the following:
     * NHS Wales patients via namespace https://fhir.wales.nhs.uk/Id/empi-number and organisational (case record numbers) codes for Cardiff and Vale, Swansea, Aneurin Bevan, Cwm Taf Morgannwg, Hywel Dda and Betsi Cadwaladr health boards
@@ -84,7 +88,6 @@ Future integrations that will be needed will be:
 
 You can think of concierge as a "socket adaptor" making it possible to plug-in your clinical application into a local ecosystem. Concierge abstracts those integrations into a cohesive set of APIs.
 
-
 # Technical information
 
 This is a `clojure` re-write of an original `golang`-based experiment.
@@ -95,5 +98,3 @@ namespaced identifiers and first-class identifier resolution and mapping.
 To build an uberjar that can be copied into legacy applications:
 
 clj -M:uberjar; cp target/concierge-full-v0.1.0.jar ~/Dev/rsdb/Frameworks/RSJars/Libraries  
-
-It will also run standalone as a microservice.    

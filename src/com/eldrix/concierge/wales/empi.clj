@@ -4,12 +4,14 @@
     [clojure.data.xml :as xml]
     [clojure.data.zip.xml :as zx]
     [clojure.java.io :as io]
+    [clojure.spec.alpha :as s]
     [clojure.tools.logging.readable :as log]
     [clojure.zip :as zip]
-    [com.eldrix.concierge.config :as config]
-    [com.eldrix.concierge.registry :refer [Resolver]]
     [clj-http.client :as client]
-    [selmer.parser]))
+    [selmer.parser])
+  (:import (java.util UUID)
+           (java.time LocalDateTime)
+           (java.time.format DateTimeFormatter)))
 
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
 (xml/alias-uri :mpi "http://apps.wales.nhs.uk/mpi/")
@@ -96,13 +98,13 @@
    "N" {:system "http://hl7.org/fhir/administrative-gender" :value :other}
    "U" {:system "http://hl7.org/fhir/administrative-gender" :value :unknown}})
 
-(def ^:private ^java.time.format.DateTimeFormatter dtf
+(def ^:private ^DateTimeFormatter dtf
   "An EMPI compatible DateTimeFormatter; immutable and thread safe."
-  (java.time.format.DateTimeFormatter/ofPattern "yyyyMMddHHmmss"))
+  (DateTimeFormatter/ofPattern "yyyyMMddHHmmss"))
 
-(def ^:private ^java.time.format.DateTimeFormatter df
+(def ^:private ^DateTimeFormatter df
   "An EMPI compatible DateFormatter; immutable and thread safe."
-  (java.time.format.DateTimeFormatter/ofPattern "yyyyMMdd"))
+  (DateTimeFormatter/ofPattern "yyyyMMdd"))
 
 (defn ^:private default-request []
   {:sending-application   221
@@ -115,21 +117,15 @@
    ;; :authority-type  "NH"
    :url                   nil
    :processing-id         nil
-   :date-time             (.format dtf (java.time.LocalDateTime/now))
-   :message-control-id    (java.util.UUID/randomUUID)})
-
-(defn- get-config []
-  (merge
-    {:url           (config/empi-url)
-     :processing-id (config/empi-processing-id)}
-    (config/http-proxy)))
+   :date-time             (.format dtf (LocalDateTime/now))
+   :message-control-id    (UUID/randomUUID)})
 
 (defn- empi-date->map
   "Parse a date in format `yyyMMdd` or `yyyyMMddHHmmss` from string `s` into a map with the specified key `k`.
   For example, `(empi-date->map \"20200919121200\" :date-birth)`."
   [s k]
   (let [l (count s)]
-    (cond (= l 14) {k (java.time.LocalDateTime/parse s dtf)}
+    (cond (= l 14) {k (LocalDateTime/parse s dtf)}
           (= l 8) {k (java.time.LocalDate/parse s df)}
           :else nil)))
 
@@ -210,6 +206,12 @@
                            (when has-proxy {:proxy-host proxy-host
                                             :proxy-port proxy-port})))))
 
+
+(s/def ::url string?)
+(s/def ::processing-id string?)
+(s/def ::params (s/keys :req-un [::url ::processing-id]
+                        :opt-un [::proxy-host ::proxy-port]))
+
 (defn- make-identifier-request
   "Creates a request for an identifier search."
   [authority identifier params]
@@ -220,32 +222,30 @@
         body (selmer.parser/render-file (io/resource "wales/empi-req.xml") req)]
     (assoc req :xml body)))
 
+
 (defn resolve!
   "Performs an EMPI fetch using the identifier as defined by `system` and `value`"
-  [system value]
-  (let [result (-> (make-identifier-request system value (get-config))
+  [params system value]
+  {:pre [(s/valid? ::params params)]}
+  (let [result (-> (make-identifier-request system value params)
                    (do-post!)
                    (parse-pdq))]
     (log/info "empi result" result)
     result))
 
-(deftype EmpiService []
-  Resolver
-  (resolve-id [this system value]
-    (resolve! system value)))
-
 (comment
   (keys authorities)
-  (mount.core/start-with-args {:profile :live})
-  (mount.core/stop)
-  (get-config)
-  (def req (make-identifier-request "https://fhir.cavuhb.nhs.wales/Id/pas-identifier" "A999998" (get-config)))
+
+  (def req (make-identifier-request "https://fhir.cavuhb.nhs.wales/Id/pas-identifier" "A999998" {:url "https://google.com" :processing-id "P"}))
   (dissoc req :xml)
   (def response (do-post! req))
   (parse-pdq response)
-
-  (resolve! "https://fhir.nhs.uk/Id/nhs-number" "1231231234")
-  (resolve! "140" "X774755")
+  (require '[com.eldrix.concierge.config])
+  (def config (com.eldrix.hermes.config/config :dev))
+  config
+  (+ 1 2 3)
+  (resolve! config "https://fhir.nhs.uk/Id/nhs-number" "1231231234")
+  (resolve! {} "140" "X774755")
 
   (def fake-response {:status 200
                       :body   (slurp (io/resource "wales/empi-resp-example.xml"))})

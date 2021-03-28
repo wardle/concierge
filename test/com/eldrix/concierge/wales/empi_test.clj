@@ -1,8 +1,8 @@
 (ns com.eldrix.concierge.wales.empi-test
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
-            [com.eldrix.concierge.wales.empi :as empi]
-            [mount.core :as mount]))
+            [aero.core :as aero]
+            [com.eldrix.concierge.wales.empi :as empi]))
 
 (deftest org-code-mapping
   (is (= "140" (:authority (get @#'empi/authorities "https://fhir.cavuhb.nhs.wales/Id/pas-identifier"))))
@@ -23,11 +23,10 @@
     (is (= "1234567890" (:value (first (filter #(= (:system %) "https://fhir.nhs.uk/Id/nhs-number") (:identifiers (first pdq)))))))))
 
 ;; run tests except these integration tests
-;; clj -A:test -e :integration
-(deftest ^:integration ^:empi-dev test-empi-dev
-  (mount/start-with-args {:profile :live})
-  (empi/resolve! "https://fhir.nhs.uk/Id/nhs-number" "1234567890")
-  (mount/stop))
+;; clj -A:test -e :live
+(deftest ^:live test-empi-live
+  (let [config (aero/read-config (io/resource "config.edn") {:profile :dev})]
+    (empi/resolve! (:wales.nhs/empi config) "https://fhir.nhs.uk/Id/nhs-number" "1234567890")))
 
 (comment
   (run-tests)
