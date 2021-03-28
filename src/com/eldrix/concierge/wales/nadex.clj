@@ -23,7 +23,7 @@
     "cymru.nhs.uk"
     636))
 
-(defn- ^LDAPConnectionPool make-connection-pool
+(defn ^LDAPConnectionPool make-connection-pool
   "Make a connection pool to the NHS Wales 'NADEX' user directory."
   ([] (make-connection-pool 5))
   ([size]
