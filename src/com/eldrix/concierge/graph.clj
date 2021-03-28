@@ -1,84 +1,109 @@
 (ns com.eldrix.concierge.graph
-  (:require
-    [clojure.string :as str]
-    [com.wsscode.pathom.core :as p]
-    [com.wsscode.pathom.connect :as pc]
-    [com.eldrix.clods.db :as db]
-    [mount.core :as mount]))
+  (:require [clojure.tools.logging.readable :as log]
+            [com.eldrix.concierge.wales.cav.pms :as cav]
+            [com.wsscode.pathom3.connect.built-in.resolvers :as pbir]
+            [com.wsscode.pathom3.connect.indexes :as pci]
+            [com.wsscode.pathom3.connect.operation :as pco]
+            [com.wsscode.pathom3.interface.eql :as p.eql]
+            [com.wsscode.pathom3.interface.smart-map :as psm]
+            [integrant.core :as ig]
+            [com.wsscode.pathom3.connect.built-in.resolvers :as pbir]
+            [com.wsscode.pathom3.connect.built-in.plugins :as pbip]
+            [promesa.core :as p]))
 
 
+(def temperatures
+  {"Recife" 23})
 
+(pco/defresolver temperature-from-city [{:keys [city]}]
+  (log/info "Hi there")
+  {:temperature (get temperatures city)})
 
-(pc/defresolver postcode-resolver [env {:keys [address/postal-code]}]
-  {::pc/input  #{:address/postal-code}
-   ::pc/output [:uk.co.ordnancesurvey.data.ontology.spatialrelations/northing
-                :uk.co.ordnancesurvey.data.ontology.spatialrelations/easting
-                :gov.statistics.datasets.nhs-postcode/OSNRTH1M
-                :gov.statistics.datasets.nhs-postcode/OSEAST1M
-                :gov.statistics.datasets.nhs-postcode/PCT
-                :gov.statistics.datasets.nhs-postcode/LSOA11]}
-  (when-let [postcode (db/fetch-postcode postal-code)]
-    {:uk.co.ordnancesurvey.data.ontology.spatialrelations/northing (:OSNRTH1M postcode)
-     :uk.co.ordnancesurvey.data.ontology.spatialrelations/easting  (:OSEAST1M postcode)
-     :gov.statistics.datasets.nhs-postcode/OSNRTH1M                (:OSNRTH1M postcode)
-     :gov.statistics.datasets.nhs-postcode/OSEAST1M                (:OSEAST1M postcode)
-     :gov.statistics.datasets.nhs-postcode/PCT                     (:PCT postcode)
-     :gov.statistics.datasets.nhs-postcode/LSOA11                  (:LSOA11 postcode)}))
-
-(pc/defresolver org-resolver
-  "Resolves an organisation identifier `:organization/id` made up of uri of
-  the form uri#id e.g. \"https://fhir.nhs.uk/Id/ods-organization-code#7A4\".
-
-  A number of different URIs are supported, including OIDS and the FHIR URIs.
-
-  The main idea here is to provide a more abstract and general purpose set of
-  properties and relationships for an organisation that that provided by the UK ODS.
-  The plan is that the vocabulary should use a standardised vocabulary such as
-  that from [https://www.w3.org/TR/vocab-org/](https://www.w3.org/TR/vocab-org/)"
-  [{:keys [database] :as env} {:keys [:organization/id]}]
-  {::pc/input  #{:organization/id}
-   ::pc/output [:organization/identifiers :organization/name :organization/type :organization/active
-                :org.w3.www.ns.prov/wasDerivedFrom          ; see https://www.w3.org/TR/prov-o/#wasDerivedFrom
-                :org.w3.www.2004.02.skos.core/prefLabel
-                :organization/isCommissionedBy :organization/subOrganizationOf]}
-  (let [[uri value] (str/split id #"#")]
-    (when-let [norg (normalize-org (db/fetch-org (get uri->oid uri) value))]
-      {:organization/identifiers               (->> (:identifiers norg)
-                                                    (map #(str (:system %) "#" (:value %))))
-       :organization/name                      (:name norg)
-       :org.w3.www.2004.02.skos.core/prefLabel (:name norg)
-       :organization/type                      (get norg "@type")
-       :organization/active                    (:active norg)
-       :org.w3.www.ns.prov/wasDerivedFrom      (->> (:predecessors norg)
-                                                    (map :target)
-                                                    (map #(str (:system %) "#" (:value %))))
-       :organization/isCommissionedBy          (->> (:relationships norg)
-                                                    (filter :active)
-                                                    (filter (fn [rel] (= (:id rel) "RE4")))
-                                                    (map :target)
-                                                    (map #(hash-map :organization/id (str (:system %) "#" (:value %)))))
-       :organization/subOrganizationOf         (->> (:relationships norg)
-                                                    (filter (fn [rel] (= (:id rel) "RE6")))
-                                                    (filter :active)
-                                                    (map :target)
-                                                    (map #(hash-map :organization/id (str (:system %) "#" (:value %)))))})))
-
-;; resolvers are just maps, we can compose many using sequences
-(def my-resolvers [postcode-resolver])
-
-(def parser
-  (p/parser
-    {::p/env     {::p/reader               [p/map-reader
-                                            pc/reader2
-                                            pc/open-ident-reader
-                                            p/env-placeholder-reader]
-                  ::p/placeholder-prefixes #{">"}}
-     ::p/mutate  pc/mutate
-     ::p/plugins [(pc/connect-plugin {::pc/register my-resolvers})
-                  p/error-handler-plugin
-                  p/trace-plugin]}))
-
+(pco/defresolver test-patient
+  [env {:cav/keys [pas-identifier]}]
+  {::pco/output [:FIRST_FORENAME :LAST_NAME]}
+  (let [opts (get-in env [::config :wales.nhs.cavuhb/pms])]
+    (println "resolving CAV identifier " pas-identifier "opts:" opts)
+    {:FIRST_FORENAME (throw (ex-info "this didn't work" {:message "Failed"}))
+     :LAST_NAME      "Wardle"}))
 
 (comment
-  (mount/start)
-  (parser {} [{[:address/postal-code "NP25 3NS"] [:gov.statistics.datasets.nhs-postcode/LSOA11]}]))
+  (do (ig/halt! system)
+      (def system (ig/resume (#'com.eldrix.concierge.config/config :dev) system))
+      (def env (:com.eldrix.concierge/graph system)))
+  (p.eql/process env [{[:cav/pas-identifier "A99998"] [:FIRST_FORENAME]}])
+  (def pt (psm/smart-map env {:cav/pas-identifier "A99998"}))
+  pt
+  (meta pt)
+  (cav/fetch-patient-by-crn (get-in env [::config :wales.nhs.cavuhb/pms]) "A999998")
+  (meta (p.eql/process env [{[:wales.nhs.cavuhb.id/pas-identifier "A99998"] [:FIRST_FORENAME]}])))
+
+(pco/defresolver
+  cav-patient
+  "Resolve a patient against the NHS Wales' Cardiff and Vale patient
+  administrative system using the namespaced identifier specified."
+  [env {:wales.nhs.cavuhb.id/keys [pas-identifier]}]
+  {::pco/output [:FIRST_FORENAME :LAST_NAME :HOSPITAL_ID]}
+  (let [opts (get-in env [::config :wales.nhs.cavuhb/pms])]
+    (println "resolving real CAV identifier " pas-identifier " with opts" opts)
+    (cav/fetch-patient-by-crn opts pas-identifier)))
+
+(defmethod ig/init-key :wales.nhs.cavuhb/pms [_ config]
+  (log/info "cav configuration: " config)
+  config)
+
+(defmethod ig/init-key :wales.nhs/empi [_ config]
+  (log/info "nhs wales empi configuration:" config)
+  config)
+
+(defmethod ig/init-key :wales.nhs/nadex [_ config]
+  (log/info "nhs wales nadex configuration:" config)
+  config)
+
+(defmethod ig/init-key :uk.gov/notify [_ config]
+  (log/info "uk gov notify configuration:" config)
+  config)
+
+(defmethod ig/init-key :com.eldrix.concierge/graph [_ config]
+  (log/info "concierge graph configuration:" config)
+  (-> {::config config}
+      (com.wsscode.pathom3.plugin/register pbip/attribute-errors-plugin)
+      (pci/register [cav-patient
+                     test-patient
+                     temperature-from-city
+                     (pbir/constantly-resolver ::pi 3.1415)])
+      (psm/with-error-mode ::psm/error-mode-loud)))
+
+(comment
+  (require '[com.eldrix.concierge.config])
+  (#'com.eldrix.concierge.config/prep :dev)
+  (def system (ig/init (#'com.eldrix.concierge.config/config :dev)))
+  system
+  (ig/halt! system)
+  (def system (ig/resume (#'com.eldrix.concierge.config/config :dev) system))
+
+  (def env (:com.eldrix.concierge/graph system))
+  env
+  (cav/fetch-patient-by-crn (:wales.nhs.cavuhb/pms system) "A999998")
+  (p.eql/process
+    env
+    [{[:wales.nhs.cavuhb.id/pas-identifier "A999998"] [:FIRST_FORENAME]}
+     ::pi])
+  (p.eql/process env [{[:city "Recife"] [:city :temperature]}])
+  (p.eql/process env [{[:cav/pas-identifier "A99998"] [:FIRST_FORENAME]}])
+  (def smart-map (psm/smart-map env {:city "Recife"}))
+  smart-map
+  ; smart maps work as regular maps when looking for the initial data
+  (:city smart-map)                                         ; => "Recife"
+
+  ; but the difference comes when we ask for keys not present in the map, but reachable
+  ; via resolvers
+  (:temperature smart-map)                                  ; =
+  (def smart-map (psm/smart-map env {:wales.nhs.cavuhb.id/pas-identifier "A999998"}))
+  smart-map
+  env
+  (:wales.nhs.cavuhb/pms system)
+  (get-in env [::config :wales.nhs.cavuhb/pms])
+  (cav-patient env {:wales.nhs.cavuhb.id/pas-identifier "A999998"})
+
+  )

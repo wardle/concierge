@@ -1,29 +1,24 @@
 (ns com.eldrix.concierge.hermes
-  (:require [com.eldrix.hermes.terminology :as terminology]
-            [mount.core :as mount]
-            [com.eldrix.concierge.registry]
-            [com.eldrix.concierge.config :as config])
-  (:import (com.eldrix.concierge.registry Resolver StructuredSearcher)
-           (com.eldrix.hermes.service SnomedService)))
+  (:require [com.eldrix.concierge.registry :as registry]
+            [com.eldrix.hermes.service :as svc]
+            [com.eldrix.hermes.terminology :as terminology]
+            [integrant.core :as ig]))
 
+(defmethod ig/init-key :com.eldrix.concierge/hermes [_ {:keys [path]}]
+  (terminology/open path))
 
-(defonce ^SnomedService svc (atom nil))
+(defmethod ig/halt-key! :com.eldrix.concierge/hermes [_ svc]
+  (terminology/close svc))
 
-(mount/defstate snomed
-                :start (reset! svc (terminology/open (:path (config/hermes-config))))
-                :stop (.close @svc))
-
-(deftype HermesService []
-  Resolver
-  (resolve-id [this system value]
-    (.getExtendedConcept @svc value))       ;; TODO: allow resolution of any SNOMED component  (trivial)
-  StructuredSearcher
+(deftype HermesService [svc]
+  registry/Resolver
+  (resolve-id [_ _ value]
+    (svc/getExtendedConcept svc value))                     ;; TODO: allow resolution of any SNOMED component  (trivial)
+  registry/StructuredSearcher
   (search-by-data [this system params]
-    (.search @svc params)))
+    (.search svc params)))
 
 (comment
-  (mount/start)
-  (mount/stop)
   (require 'com.eldrix.concierge.core)
   (com.eldrix.concierge.core/register-resolvers)
   (com.eldrix.concierge.registry/log-status)

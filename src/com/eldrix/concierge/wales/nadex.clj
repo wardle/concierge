@@ -2,13 +2,9 @@
   "Integration with NHS Wales' active directory for authentication and user lookup."
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
-            [clojure.tools.logging.readable :as log]
-            [mount.core :as mount]
-            [com.eldrix.concierge.config :as config]
-            [com.eldrix.concierge.registry])
-  (:import (com.eldrix.concierge.registry Resolver FreetextSearcher StructuredSearcher)
-           (com.unboundid.ldap.sdk LDAPConnectionPool LDAPConnection LDAPBindException LDAPConnectionOptions
-                                   SearchRequest SearchScope Filter Attribute)
+            [clojure.tools.logging.readable :as log])
+  (:import (com.unboundid.ldap.sdk LDAPConnectionPool LDAPConnection LDAPBindException LDAPConnectionOptions
+                                   SearchRequest SearchScope Filter Attribute SearchResultEntry)
            (com.unboundid.util.ssl TrustAllTrustManager SSLUtil)
            (java.util Collection)))
 
@@ -16,7 +12,7 @@
 ;; use a custom keystore or downgrade to using a non-encrypted channel of communication.
 ;; In the circumstances, a man-in-the-middle attack within an intranet environment is unlikely,
 ;; so we simply accept self-signed server certificates and at least encrypt our communications.
-(defn make-unauthenticated-connection
+(defn ^LDAPConnection make-unauthenticated-connection
   "Creates a secure but unauthenticated connection, trusting all server certificates."
   []
   (LDAPConnection.
@@ -27,16 +23,20 @@
     "cymru.nhs.uk"
     636))
 
-(defonce ^LDAPConnectionPool connection-pool
-         (delay
-           (let [size (or (config/nadex-connection-pool-size) 5)]
-             (log/info "creating LDAP connection pool; size:" size)
-             (LDAPConnectionPool. (make-unauthenticated-connection) size))))
+(defn- ^LDAPConnectionPool make-connection-pool
+  "Make a connection pool to the NHS Wales 'NADEX' user directory."
+  ([] (make-connection-pool 5))
+  ([size]
+   (LDAPConnectionPool. (make-unauthenticated-connection) size)))
 
 (defn can-authenticate?
-  "Can the user 'username' authenticate using the 'password' specified?"
-  [username password]
-  (with-open [c (.getConnection @connection-pool)]
+  "Can the user 'username' authenticate using the 'password' specified?
+   Parameters:
+    - pool     : a connection pool
+    - username : username
+    - password : password."
+  [^LDAPConnectionPool pool username password]
+  (with-open [c (.getConnection pool)]
     (try (.bind c (str username "@cymru.nhs.uk") password)
          true
          (catch LDAPBindException e false))))
@@ -62,13 +62,18 @@
             (let [v (.getValues attr)] (if (= 1 (count v)) (first v) v)))]
     [(keyword n) v]))
 
-(defn parse-entry [^com.unboundid.ldap.sdk.SearchResultEntry result]
+(defn parse-entry [^SearchResultEntry result]
   (into {} (map parse-attr (.getAttributes result))))
 
-(defn by-username [^String username]
+(defn by-username 
+  "Create an LDAP filter to search by username."
+  [^String username]
   (Filter/createEqualityFilter "sAMAccountName" username))
 
-(defn by-name [^String names]
+(defn by-name 
+  "Create an LDAP filter to search by name of individual.
+   This searches both surname 'sn' and first name 'givenName' fields."
+  [^String names]
   (Filter/createANDFilter ^Collection
                           (->> (str/split names #"\s+")
                                (map #(Filter/createORFilter [(Filter/createSubInitialFilter "sn" ^String %)
@@ -76,7 +81,9 @@
 (defn by-job [^String name]
   (Filter/createSubAnyFilter "title" (into-array String (str/split name #"\s+"))))
 
-(defn by-params [params]
+(defn by-params 
+  "Create an LDAP filter to search for the specified arbitrary parameters."
+  [params]
   (let [clauses (map (fn [[k v]] (Filter/createEqualityFilter ^String (name k) ^String v)) params)]
     (if (= 1 (count clauses))
       (first clauses)
@@ -86,12 +93,11 @@
   "Search for the user specified, either using their own credentials (and
    implicitly searching for themselves, or using specific generic binding
    credentials and the 'filter' specified."
-  ([^Filter search-filter] (search (config/nadex-default-bind-username) (config/nadex-default-bind-password) search-filter))
-  ([username password] (search username password (by-username username)))
-  ([bind-username bind-password ^Filter search-filter]
-   {:pre [bind-username bind-password]}
+  ([^LDAPConnectionPool pool bind-username bind-password] (search pool bind-username bind-password (by-username bind-username)))
+  ([^LDAPConnectionPool pool bind-username bind-password ^Filter search-filter]
+   {:pre [pool bind-username bind-password]}
    (log/info "ldap bind with username " bind-username "filter:" (.toNormalizedString search-filter))
-   (with-open [c (.getConnection @connection-pool)]
+   (with-open [c (.getConnection pool)]
      (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
      (let [results (.search c (SearchRequest.
                                 "DC=cymru,DC=nhs,DC=uk"
@@ -100,35 +106,27 @@
                                 (into-array String returning-attributes)))]
        (map parse-entry (.getSearchEntries results))))))
 
-(deftype NadexService [username password]
-  Resolver
-  (resolve-id [this system value]
-    (search username password (by-username value)))
-  StructuredSearcher
-  (search-by-data [this system params]
-    (search username password (by-params params)))
-  FreetextSearcher
-  (search-by-text [this system value]
-    (search username password (by-name value))))
-
 (comment
-  (mount.core/start)
-  (mount.core/stop)
-  (def bind-username (config/nadex-default-bind-username))
-  (def bind-password (config/nadex-default-bind-password))
-  (can-authenticate? bind-username bind-password)
-  (search bind-username bind-password (by-username "ma090906"))
+  (do
+    (require '[com.eldrix.concierge.config])
+    (def config (:wales.nhs/nadex (com.eldrix.concierge.config/config :dev)))
+    (def bind-username (:default-bind-username config))
+    (def bind-password (:default-bind-password config))
+    (def pool (make-connection-pool)))
+  bind-username
   bind-password
-  (def ortho (search bind-username bind-password (by-job "orthopaedic")))
+  (can-authenticate? pool bind-username bind-password)
+  (search pool bind-username bind-password (by-username "ma090906"))
+  bind-password
+  (def ortho (search pool bind-username bind-password (by-job "orthopaedic")))
   (require '[clojure.data.csv :as csv])
 
   (with-open [writer (io/writer "out-file.csv")]
     (clojure.data.csv/write-csv writer ortho))
 
-  (def jc (search bind-username bind-password (by-name "Chess")))
+  (def jc (search pool bind-username bind-password (by-name "Chess")))
   jc
   (type (:thumbnailPhoto (first jc)))
   (with-open [o (io/output-stream "jc.jpg")]
-    (.write o (:thumbnailPhoto (first jc))))
-  )
+    (.write o (:thumbnailPhoto (first jc)))))
 

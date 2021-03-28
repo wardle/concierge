@@ -4,7 +4,7 @@
             [com.eldrix.concierge.connect :as connect]
             [com.eldrix.concierge.ods :as ods]
             [com.eldrix.concierge.hermes :as hermes]
-            [com.eldrix.clods.db :as db]
+            [com.eldrix.clods.core :as clods]
             [com.eldrix.clods.postcode :as postcode]
             [com.eldrix.concierge.wales.empi :as empi]
             [com.eldrix.concierge.wales.nadex :as nadex]
@@ -115,7 +115,7 @@
   (res/resolve-identifier "https://fhir.nhs.uk/Id/ods-organization-code", "7A4BV")
   (res/freetext-search "https://fhir.nhs.uk/Id/ods-organization-code" "castle gate")
   (res/structured-search "https://fhir.nhs.uk/Id/ods-organization-code" {:name "monmouth" :role "RO72" :postcode "CF14 4XW"})
-  (postcode/distance-between (db/fetch-postcode "CF14 4XW") (db/fetch-postcode "B30 1HL"))
+  (postcode/distance-between (clods/fetch-postcode "CF14 4XW") (clods/fetch-postcode "B30 1HL"))
   (res/freetext-search "https://fhir.nhs.uk/Id/ods-organization-code" "castle gate")
 
   (res/resolve-identifier "http://snomed.info/sct", 24700007)

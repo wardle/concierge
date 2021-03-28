@@ -42,7 +42,7 @@
    :uk.nhs.fhir.id/ods-organization-code                         "https://fhir.nhs.uk/Id/ods-organization-code"
    :uk.nhs.fhir.id/ods-site-code                                 "https://fhir.nhs.uk/Id/ods-site-code"
    :org.hl7.fhir/composition-status                              "http://hl7.org/fhir/composition-status" ;;see https://www.hl7.org/fhir/valueset-composition-status.html
-   :org.w3.www.2006.vcard.ns/postal-code                         "http://www.w3.org/2006/vcard/ns#postal-code"
+   :org.w3.2006.vcard.ns/postal-code                             "http://www.w3.org/2006/vcard/ns#postal-code"
    :org.hl7.fhir.Address/postal-code                             "https://hl7.org/fhir/Address/postal-code"
    :gov.statistics.datasets.nhs-postcode                         "https://statistics.gov.uk/datasets/nhs-postcode" ;; NHS postcode directory
    :uk.co.ordnancesurvey.data.ontology.spatialrelations/easting  "http://data.ordnancesurvey.co.uk/ontology/spatialrelations/easting"
