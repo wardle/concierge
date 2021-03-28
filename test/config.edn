@@ -1,0 +1,13 @@
+{:secrets              #include #join [#env HOME "/.secrets.edn"]
+
+ :wales.nhs/empi       {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
+                        :processing-id "P"}
+ :wales.nhs/nadex      {:connection-pool-size  5
+                        :default-bind-username #ref [:secrets :nadex-bind-username]
+                        :default-bind-password #ref [:secrets :nadex-bind-password]}
+ :wales.nhs.cavuhb/pms {:username    #ref [:secrets :cav-pms-username]
+                        :password    #ref [:secrets :cav-pms-password]
+                        :database    "vpmslive.world"
+                        :user-string "patientcare-concierge"}
+
+ :uk.gov/notify        {:api-key #ref [:secrets :gov-uk-notify-api-key]}}

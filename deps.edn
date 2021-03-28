@@ -3,39 +3,27 @@
 
  :deps    {org.clojure/clojure             {:mvn/version "1.10.3"}
            org.clojure/core.async          {:mvn/version "1.3.610"}
-           org.clojure/core.cache          {:mvn/version "1.0.207"}
            org.clojure/data.xml            {:mvn/version "0.2.0-alpha6"}
-           org.clojure/data.json           {:mvn/version "2.0.1"}
+           org.clojure/data.json           {:mvn/version "2.0.2"}
            org.clojure/data.zip            {:mvn/version "1.0.0"}
-           org.clojure/tools.cli           {:mvn/version "1.0.206"}
            org.clojure/tools.logging       {:mvn/version "1.1.0"}
 
-           ch.qos.logback/logback-classic  {:mvn/version "1.2.3"}
-
-           com.eldrix/clods                {:git/url "https://github.com/wardle/clods.git"
-                                            :sha     "24e4cd48763384c09af91764594bc6daa858a8e4"}
-           com.eldrix/hermes               {:git/url "https://github.com/wardle/hermes.git"
-                                            :sha     "597bafb58d97e3e7883456ff1937de1d6bd8ea3c"}
-
-           aero/aero                       {:mvn/version "1.1.6"}
-           aleph/aleph                     {:mvn/version "0.4.7-alpha7"}
-
-           buddy/buddy-core                {:mvn/version "1.9.0"}
-           buddy/buddy-sign                {:mvn/version "3.3.0"}
            clj-http/clj-http               {:mvn/version "3.12.1"}
-           compojure/compojure             {:mvn/version "1.6.2"}
            com.layerware/hugsql-core       {:mvn/version "0.5.1"}
            com.unboundid/unboundid-ldapsdk {:mvn/version "5.1.4"}
-           com.wsscode/pathom3             {:git/url "https://github.com/wilkerlucio/pathom3"
-                                            :sha     "cd8f4d05ef2ab3fbb19cec2153d9ce61a8056579"}
-
-           integrant/integrant             {:mvn/version "0.8.0"}
-           ring/ring-defaults              {:mvn/version "0.3.2"}
            selmer/selmer                   {:mvn/version "1.12.33"}}
 
- :aliases {:test
-           {:extra-paths ["test" "test/resources"]
+ :aliases {
+           :test/unit
+           {:extra-paths ["test"]
             :extra-deps  {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                     :sha     "b6b3193fcc42659d7e46ecd1884a228993441182"}}
+            :main-opts   ["-m" "cognitect.test-runner" "-e" ":live"]}
+
+           :test/live
+           {:extra-paths ["test"]
+            :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
+                          com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
                                                      :sha     "b6b3193fcc42659d7e46ecd1884a228993441182"}}
             :main-opts   ["-m" "cognitect.test-runner"]}
 
@@ -66,7 +54,6 @@
            :lint/eastwood
            {:main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]
             :extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}}
-
 
            :jar
            {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.0.206"}}
