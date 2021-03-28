@@ -12,7 +12,7 @@
   6. If result is 10, NHS number is invalid
   7. Check remainder matches the check digit, if it does not NHS number is invalid"
   [nnn]
-  (when (and (= 10 (count nnn)) (every? #(Character/isDigit %) nnn))
+  (when (and (= 10 (count nnn)) (every? #(Character/isDigit ^char %) nnn))
     (let [cd (- (int (.charAt nnn 9)) (int \0))             ;; the check digit
           digits (map #(- (int %) (int \0)) nnn)            ;; convert string into integers
           weights (range 10 1 -1)                           ;; the weights running from 10 down to 2
