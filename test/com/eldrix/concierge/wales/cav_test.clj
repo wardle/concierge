@@ -26,9 +26,6 @@
 
 
 (comment
-  (println "Hello World")
-  (cav-config)
-  (pms/fetch-patient-by-crn (cav-config) "A999998")
   (run-tests))
 
 
