@@ -3,3 +3,8 @@
 classes/
 jconcierge.iml
 .calva/
+.clj-kondo/cache
+.clj-kondo/.cache
+.settings
+.vscode
+target/
