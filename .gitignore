@@ -1,7 +1,6 @@
 .idea/
 .cpcache/
 classes/
-jconcierge.iml
 .calva/
 .clj-kondo/cache
 .clj-kondo/.cache
@@ -10,3 +9,4 @@ jconcierge.iml
 target/
 concierge.iml
 .eastwood
+.calva/
