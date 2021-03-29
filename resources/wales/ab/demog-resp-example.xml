@@ -1,114 +1,114 @@
-<?xml version= \"1.0\" encoding= \"utf-8\"?>
-<soap:Envelope xmlns:soap= \"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsi= \"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd= \"http://www.w3.org/2001/XMLSchema\">
+<?xml version= "1.0" encoding= "utf-8"?>
+<soap:Envelope xmlns:soap= "http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd= "http://www.w3.org/2001/XMLSchema">
     <soap:Body>
-        <GetPatientDemographicsResponse xmlns= \"http://tempuri.org/\">
+        <GetPatientDemographicsResponse xmlns= "http://tempuri.org/">
             <GetPatientDemographicsResult>
-                <xs:schema id= \"NewDataSet\" targetNamespace= \"http://apps.wales.nhs.uk/wcp/\" xmlns:mstns= \"http://apps.wales.nhs.uk/wcp/\" xmlns= \"http://apps.wales.nhs.uk/wcp/\" xmlns:xs= \"http://www.w3.org/2001/XMLSchema\" xmlns:msdata= \"urn:schemas-microsoft-com:xml-msdata\" attributeFormDefault= \"qualified\" elementFormDefault= \"qualified\">
-                    <xs:element name= \"PatientDemographicsResponse\">
+                <xs:schema id= "NewDataSet" targetNamespace= "http://apps.wales.nhs.uk/wcp/" xmlns:mstns= "http://apps.wales.nhs.uk/wcp/" xmlns= "http://apps.wales.nhs.uk/wcp/" xmlns:xs= "http://www.w3.org/2001/XMLSchema" xmlns:msdata= "urn:schemas-microsoft-com:xml-msdata" attributeFormDefault= "qualified" elementFormDefault= "qualified">
+                    <xs:element name= "PatientDemographicsResponse">
                         <xs:complexType>
                             <xs:sequence>
-                                <xs:element name= \"CRN\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"NNN\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"FirstName\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"LastName\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"MiddleInitial\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"Title\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"DateOfBirth\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"HomeTelephoneNumber\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"DateOfDeath\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"RegisteredGP\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"RegisteredGPPracticeCode\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"DateOfGPRegistration\" type= \"xs:string\" minOccurs= \"0\" />
-                                <xs:element name= \"Sex\" minOccurs= \"0\" maxOccurs= \"unbounded\">
+                                <xs:element name= "CRN" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "NNN" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "FirstName" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "LastName" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "MiddleInitial" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "Title" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "DateOfBirth" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "HomeTelephoneNumber" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "DateOfDeath" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "RegisteredGP" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "RegisteredGPPracticeCode" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "DateOfGPRegistration" type= "xs:string" minOccurs= "0" />
+                                <xs:element name= "Sex" minOccurs= "0" maxOccurs= "unbounded">
                                     <xs:complexType>
                                         <xs:sequence>
-                                            <xs:element name= \"Code\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"Description\" type= \"xs:string\" minOccurs= \"0\" />
+                                            <xs:element name= "Code" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "Description" type= "xs:string" minOccurs= "0" />
                                         </xs:sequence>
                                     </xs:complexType>
                                 </xs:element>
-                                <xs:element name= \"ContactAddress\" minOccurs= \"0\" maxOccurs= \"unbounded\">
+                                <xs:element name= "ContactAddress" minOccurs= "0" maxOccurs= "unbounded">
                                     <xs:complexType>
                                         <xs:sequence>
-                                            <xs:element name= \"AddressLine1\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"AddressLine2\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"AddressLine3\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"AddressLine4\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"PostCode\" type= \"xs:string\" minOccurs= \"0\" />
+                                            <xs:element name= "AddressLine1" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "AddressLine2" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "AddressLine3" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "AddressLine4" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "PostCode" type= "xs:string" minOccurs= "0" />
                                         </xs:sequence>
                                     </xs:complexType>
                                 </xs:element>
-                                <xs:element name= \"EthnicOrigin\" minOccurs= \"0\" maxOccurs= \"unbounded\">
+                                <xs:element name= "EthnicOrigin" minOccurs= "0" maxOccurs= "unbounded">
                                     <xs:complexType>
                                         <xs:sequence>
-                                            <xs:element name= \"Code\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"Description\" type= \"xs:string\" minOccurs= \"0\" />
+                                            <xs:element name= "Code" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "Description" type= "xs:string" minOccurs= "0" />
                                         </xs:sequence>
                                     </xs:complexType>
                                 </xs:element>
-                                <xs:element name= \"DHA\" minOccurs= \"0\" maxOccurs= \"unbounded\">
+                                <xs:element name= "DHA" minOccurs= "0" maxOccurs= "unbounded">
                                     <xs:complexType>
                                         <xs:sequence>
-                                            <xs:element name= \"Code\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"Description\" type= \"xs:string\" minOccurs= \"0\" />
+                                            <xs:element name= "Code" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "Description" type= "xs:string" minOccurs= "0" />
                                         </xs:sequence>
                                     </xs:complexType>
                                 </xs:element>
-                                <xs:element name= \"Religion\" minOccurs= \"0\" maxOccurs= \"unbounded\">
+                                <xs:element name= "Religion" minOccurs= "0" maxOccurs= "unbounded">
                                     <xs:complexType>
                                         <xs:sequence>
-                                            <xs:element name= \"Code\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"Description\" type= \"xs:string\" minOccurs= \"0\" />
+                                            <xs:element name= "Code" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "Description" type= "xs:string" minOccurs= "0" />
                                         </xs:sequence>
                                     </xs:complexType>
                                 </xs:element>
-                                <xs:element name= \"MaritalStatus\" minOccurs= \"0\" maxOccurs= \"unbounded\">
+                                <xs:element name= "MaritalStatus" minOccurs= "0" maxOccurs= "unbounded">
                                     <xs:complexType>
                                         <xs:sequence>
-                                            <xs:element name= \"Code\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"Description\" type= \"xs:string\" minOccurs= \"0\" />
+                                            <xs:element name= "Code" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "Description" type= "xs:string" minOccurs= "0" />
                                         </xs:sequence>
                                     </xs:complexType>
                                 </xs:element>
                             </xs:sequence>
                         </xs:complexType>
                     </xs:element>
-                    <xs:element name= \"NewDataSet\" msdata:IsDataSet= \"true\" msdata:UseCurrentLocale= \"true\">
+                    <xs:element name= "NewDataSet" msdata:IsDataSet= "true" msdata:UseCurrentLocale= "true">
                         <xs:complexType>
-                            <xs:choice minOccurs= \"0\" maxOccurs= \"unbounded\">
-                                <xs:element ref= \"PatientDemographicsResponse\" />
-                                <xs:element name= \"PATIENT\">
+                            <xs:choice minOccurs= "0" maxOccurs= "unbounded">
+                                <xs:element ref= "PatientDemographicsResponse" />
+                                <xs:element name= "PATIENT">
                                     <xs:complexType>
                                         <xs:sequence>
-                                            <xs:element name= \"CRN\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"FirstName\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"LastName\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"MiddleInitial\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"Title\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"ContactAddress1\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"ContactAddress2\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"ContactAddress3\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"ContactAddress4\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"ContactPostCode\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"NHSNumber\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"DateOfBirth\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"Sex\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"EthnicOrigin\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"EthnicOriginDesc\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"Religion\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"ReligionDesc\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"LocalAuthority\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"ElectoralWard\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"Dha\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"DhaDesc\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"DateOfResidence\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"HomeTelephoneNumber\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"MaritalStatus\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"MaritalStatusDesc\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"DateOfDeath\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"RegisteredGP\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"RegisteredGpPracticeCode\" type= \"xs:string\" minOccurs= \"0\" />
-                                            <xs:element name= \"DateOfGPRegistration\" type= \"xs:string\" minOccurs= \"0\" />
+                                            <xs:element name= "CRN" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "FirstName" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "LastName" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "MiddleInitial" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "Title" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "ContactAddress1" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "ContactAddress2" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "ContactAddress3" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "ContactAddress4" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "ContactPostCode" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "NHSNumber" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "DateOfBirth" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "Sex" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "EthnicOrigin" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "EthnicOriginDesc" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "Religion" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "ReligionDesc" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "LocalAuthority" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "ElectoralWard" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "Dha" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "DhaDesc" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "DateOfResidence" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "HomeTelephoneNumber" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "MaritalStatus" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "MaritalStatusDesc" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "DateOfDeath" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "RegisteredGP" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "RegisteredGpPracticeCode" type= "xs:string" minOccurs= "0" />
+                                            <xs:element name= "DateOfGPRegistration" type= "xs:string" minOccurs= "0" />
                                         </xs:sequence>
                                     </xs:complexType>
                                 </xs:element>
@@ -116,9 +116,9 @@
                         </xs:complexType>
                     </xs:element>
                 </xs:schema>
-                <diffgr:diffgram xmlns:msdata= \"urn:schemas-microsoft-com:xml-msdata\" xmlns:diffgr= \"urn:schemas-microsoft-com:xml-diffgram-v1\">
-                    <NewDataSet xmlns= \"http://apps.wales.nhs.uk/wcp/\">
-                        <PatientDemographicsResponse diffgr:id= \"PatientDemographicsResponse1\" msdata:rowOrder= \"0\" diffgr:hasChanges= \"inserted\" msdata:hiddenPatientDemographicsResponse_Id= \"0\">
+                <diffgr:diffgram xmlns:msdata= "urn:schemas-microsoft-com:xml-msdata" xmlns:diffgr= "urn:schemas-microsoft-com:xml-diffgram-v1">
+                    <NewDataSet xmlns= "http://apps.wales.nhs.uk/wcp/">
+                        <PatientDemographicsResponse diffgr:id= "PatientDemographicsResponse1" msdata:rowOrder= "0" diffgr:hasChanges= "inserted" msdata:hiddenPatientDemographicsResponse_Id= "0">
                             <CRN>1234567</CRN>
                             <NNN>1111111111</NNN>
                             <FirstName>DONALD MICKEY</FirstName>
@@ -131,35 +131,35 @@
                             <RegisteredGP>G7602478</RegisteredGP>
                             <RegisteredGPPracticeCode>W93036</RegisteredGPPracticeCode>
                             <DateOfGPRegistration>02/12/1970 06:17:00</DateOfGPRegistration>
-                            <Sex diffgr:id= \"Sex1\" msdata:rowOrder= \"0\" diffgr:hasChanges= \"inserted\" msdata:hiddenPatientDemographicsResponse_Id= \"0\">
+                            <Sex diffgr:id= "Sex1" msdata:rowOrder= "0" diffgr:hasChanges= "inserted" msdata:hiddenPatientDemographicsResponse_Id= "0">
                                 <Code>1</Code>
                                 <Description>Male</Description>
                             </Sex>
-                            <ContactAddress diffgr:id= \"ContactAddress1\" msdata:rowOrder= \"0\" diffgr:hasChanges= \"inserted\" msdata:hiddenPatientDemographicsResponse_Id= \"0\">
+                            <ContactAddress diffgr:id= "ContactAddress1" msdata:rowOrder= "0" diffgr:hasChanges= "inserted" msdata:hiddenPatientDemographicsResponse_Id= "0">
                                 <AddressLine1>1 Station Road</AddressLine1>
                                 <AddressLine2>Heath</AddressLine2>
                                 <AddressLine3>Cardiff</AddressLine3>
                                 <AddressLine4>Cardiffshire</AddressLine4>
                                 <PostCode>CF14 4XW</PostCode>
                             </ContactAddress>
-                            <EthnicOrigin diffgr:id= \"EthnicOrigin1\" msdata:rowOrder= \"0\" diffgr:hasChanges= \"inserted\" msdata:hiddenPatientDemographicsResponse_Id= \"0\">
+                            <EthnicOrigin diffgr:id= "EthnicOrigin1" msdata:rowOrder= "0" diffgr:hasChanges= "inserted" msdata:hiddenPatientDemographicsResponse_Id= "0">
                                 <Code>ZZ</Code>
                                 <Description>Not stated</Description>
                             </EthnicOrigin>
-                            <DHA diffgr:id= \"DHA1\" msdata:rowOrder= \"0\" diffgr:hasChanges= \"inserted\" msdata:hiddenPatientDemographicsResponse_Id= \"0\">
+                            <DHA diffgr:id= "DHA1" msdata:rowOrder= "0" diffgr:hasChanges= "inserted" msdata:hiddenPatientDemographicsResponse_Id= "0">
                                 <Code>7A6</Code>
                                 <Description>Aneurin Bevan LHB</Description>
                             </DHA>
-                            <Religion diffgr:id= \"Religion1\" msdata:rowOrder= \"0\" diffgr:hasChanges= \"inserted\" msdata:hiddenPatientDemographicsResponse_Id= \"0\">
+                            <Religion diffgr:id= "Religion1" msdata:rowOrder= "0" diffgr:hasChanges= "inserted" msdata:hiddenPatientDemographicsResponse_Id= "0">
                                 <Code />
                                 <Description />
                             </Religion>
-                            <MaritalStatus diffgr:id= \"MaritalStatus1\" msdata:rowOrder= \"0\" diffgr:hasChanges= \"inserted\" msdata:hiddenPatientDemographicsResponse_Id= \"0\">
+                            <MaritalStatus diffgr:id= "MaritalStatus1" msdata:rowOrder= "0" diffgr:hasChanges= "inserted" msdata:hiddenPatientDemographicsResponse_Id= "0">
                                 <Code>9</Code>
                                 <Description>Not known</Description>
                             </MaritalStatus>
                         </PatientDemographicsResponse>
-                        <PATIENT diffgr:id= \"PATIENT1\" msdata:rowOrder= \"0\" diffgr:hasChanges= \"inserted\">
+                        <PATIENT diffgr:id= "PATIENT1" msdata:rowOrder= "0" diffgr:hasChanges= "inserted">
                             <CRN>1234567</CRN>
                             <FirstName>DONALD MICKEY</FirstName>
                             <LastName>DUCK</LastName>
