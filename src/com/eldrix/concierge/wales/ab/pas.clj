@@ -7,12 +7,20 @@
             [clojure.java.io :as io]
             [clojure.data.xml :as xml]
             [clojure.data.zip.xml :as zx]
-            [clojure.zip :as zip]))
+            [clojure.zip :as zip])
+  (:import (java.time.format DateTimeFormatter)
+           (java.time LocalDate)))
 
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
 (xml/alias-uri :tempuri "http://tempuri.org/")
 (xml/alias-uri :dgv1 "urn:schemas-microsoft-com:xml-diffgram-v1")
 (xml/alias-uri :wcp "http://apps.wales.nhs.uk/wcp/")
+
+
+(def ^:private ^DateTimeFormatter df
+  "ABM myrddin compatible DateFormatter; immutable and thread safe."
+  (DateTimeFormatter/ofPattern "dd/MM/yyyy"))
+
 
 (defn- parse-address
   [loc]
@@ -29,9 +37,11 @@
    :first-names           (zx/xml1-> loc ::wcp/FirstName zx/text)
    :last-name             (zx/xml1-> loc ::wcp/LastName zx/text)
    :title                 (zx/xml1-> loc ::wcp/Title zx/text)
-   :date-birth            (zx/xml1-> loc ::wcp/DateOfBirth zx/text)
+   :date-birth            (let [dob (zx/xml1-> loc ::wcp/DateOfBirth zx/text)]
+                            (when-not (= "" dob) (LocalDate/parse dob df)))
    :home-telephone-number (zx/xml1-> loc ::wcp/HomeTelephoneNumber zx/text)
-   :date-death            (zx/xml1-> loc ::wcp/DateOfDeath zx/text)
+   :date-death            (let [dod (zx/xml1-> loc ::wcp/DateOfDeath zx/text)]
+                            (when-not (= "" dod) (LocalDate/parse dod df)))
    :general-practitioner  (zx/xml1-> loc ::wcp/RegisteredGP zx/text)
    :surgery               (zx/xml1-> loc ::wcp/RegisteredGPPracticeCode zx/text)
    :sex                   (zx/xml1-> loc ::wcp/Sex ::wcp/Description zx/text)
