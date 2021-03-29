@@ -9,5 +9,5 @@
                         :password    #ref [:secrets :cav-pms-password]
                         :database    "vpmslive.world"
                         :user-string "patientcare-concierge"}
-
+ :wales.nhs.abuhb/pas  {:demographics {:url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx"}}
  :uk.gov/notify        {:api-key #ref [:secrets :gov-uk-notify-api-key]}}
