@@ -14,7 +14,7 @@
 (xml/alias-uri :dgv1 "urn:schemas-microsoft-com:xml-diffgram-v1")
 (xml/alias-uri :wcp "http://apps.wales.nhs.uk/wcp/")
 
-(defn parse-address
+(defn- parse-address
   [loc]
   {:address1 (zx/xml1-> loc ::wcp/AddressLine1 zx/text)
    :address2 (zx/xml1-> loc ::wcp/AddressLine2 zx/text)
@@ -22,7 +22,7 @@
    :address4 (zx/xml1-> loc ::wcp/AddressLine4 zx/text)
    :postcode (zx/xml1-> loc ::wcp/PostCode zx/text)})
 
-(defn parse-demographic-response
+(defn- parse-demographic-response
   [loc]
   {:crn                   (zx/xml1-> loc ::wcp/CRN zx/text)
    :nnn                   (zx/xml1-> loc ::wcp/NNN zx/text)
@@ -61,7 +61,7 @@
         soap->responses)))
 
 
-(defn make-get-demographics-request [{:keys [_crn _nhs-number] :as req}]
+(defn- make-get-demographics-request [{:keys [_crn _nhs-number] :as req}]
   (let [body (selmer.parser/render-file (io/resource "wales/ab/demog-req.xml") req)]
     body))
 
@@ -79,17 +79,25 @@
                            (when has-proxy {:proxy-host proxy-host
                                             :proxy-port proxy-port})))))
 
-(defn fetch-patient [{:keys [_crn _nhs-number _url _proxy-host _proxy-port] :as req}]
+(defn fetch-patient
+  "Fetch a patient using either the CRN or NHS number specified.
+   Parameters:
+   - :crn        - case record number (AB hospital identifier)
+   - :nhs-number - NHS number
+   - :url        - URL of endpoint to use
+   - :proxy-host - proxy server to use, if any
+   - :proxy-port - proxy server port, if any."
+  [{:keys [_crn _nhs-number _url _proxy-host _proxy-port] :as req}]
   (-> (do-post! (assoc req :xml (make-get-demographics-request req)))
       parse-demographics-responses
       first))
 
 (comment
-  (do-post! {:url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx" :xml (make-get-demographics-request {:crn "12345"})})
+  (do-post! {:url "https://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx" :xml (make-get-demographics-request {:crn "12345"})})
   (def fake-response {:status 200
                       :body   (slurp (io/resource "wales/ab/demog-resp-example.xml"))})
   fake-response
   (parse-demographics-responses fake-response)
 
-  (fetch-patient {:crn "12345" :url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx"})
+  (fetch-patient {:crn "123" :url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx"})
   )
