@@ -11,7 +11,7 @@
   5. If result is 11, the check digit is 0
   6. If result is 10, NHS number is invalid
   7. Check remainder matches the check digit, if it does not NHS number is invalid"
-  [nnn]
+  [^String nnn]
   (when (and (= 10 (count nnn)) (every? #(Character/isDigit ^char %) nnn))
     (let [cd (- (int (.charAt nnn 9)) (int \0))             ;; the check digit
           digits (map #(- (int %) (int \0)) nnn)            ;; convert string into integers

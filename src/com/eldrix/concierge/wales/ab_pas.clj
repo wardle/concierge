@@ -1,4 +1,4 @@
-(ns com.eldrix.concierge.wales.ab.pas
+(ns com.eldrix.concierge.wales.ab-pas
   "Integration with the Aneurin Bevan Myrddin web service. 
    See http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS for the test harness."
   (:require [clojure.tools.logging.readable :as log]
@@ -72,7 +72,7 @@
 
 
 (defn- make-get-demographics-request [{:keys [_crn _nhs-number] :as req}]
-  (let [body (selmer.parser/render-file (io/resource "wales/ab/demog-req.xml") req)]
+  (let [body (selmer/render-file (io/resource "wales/ab-demog-req.xml") req)]
     body))
 
 (defn- do-post!
@@ -105,7 +105,7 @@
 (comment
   (do-post! {:url "https://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx" :xml (make-get-demographics-request {:crn "T11111"})})
   (def fake-response {:status 200
-                      :body   (slurp (io/resource "wales/ab/demog-resp-example.xml"))})
+                      :body   (slurp (io/resource "wales/ab-demog-resp-example.xml"))})
   fake-response
   (parse-demographics-responses fake-response)
 

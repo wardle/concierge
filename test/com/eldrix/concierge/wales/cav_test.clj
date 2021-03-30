@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
             [aero.core :as aero]
-            [com.eldrix.concierge.wales.cav.pms :as pms]))
+            [com.eldrix.concierge.wales.cav-pms :as pms]))
 
 (defn cav-config []
   (:wales.nhs.cavuhb/pms (aero/read-config (io/resource "config.edn") {:profile :live})))
