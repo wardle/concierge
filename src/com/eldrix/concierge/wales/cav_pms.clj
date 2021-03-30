@@ -152,8 +152,8 @@
 
 (defn- parse-crn [crn]
   (when crn
-    (let [r (re-matches crn-pattern (str/upper-case crn))]
-      (when r {:crn (r 2) :type (r 1)}))))
+    (when-let [r (re-matches crn-pattern (str/upper-case crn))]
+      {:crn (r 2) :type (r 1)})))
 
 (def ^:private address-keys
   "Keys representing an address in the fetch patient query"
@@ -164,18 +164,16 @@
   We obtain the address history and so have multiple rows returned; we use the
   first row for the core patient information and manipulate the returned data to
   add an 'ADDRESSES' property containing the address history."
-  ([opts nnn] (fetch-patient-by-nnn-sqlvec opts nnn true))
-  ([opts nnn validate-nnn?]
-   {:pre [(s/valid? ::opts opts) (string? nnn)]}
-   (when (or (not validate-nnn?) (nnn/valid? nnn))
-     (log/info "fetching patient " nnn)
-     (let [sqlvec (fetch-patient-by-nnn-sqlvec {:nhs-number nnn})
-           results (do-sql opts sqlvec)]
-       (when-not (:success? results)
-         (log/error "failed to fetch patient with NNN:" nnn (:message results)))
-       (when-not (= 0 (:row-count results))
-         (-> (apply dissoc (first (:body results)) address-keys)
-             (assoc :ADDRESSES (map #(select-keys % address-keys) (:body results)))))))))
+  [opts nnn]
+  {:pre [(s/valid? ::opts opts) (string? nnn)]}
+  (log/info "fetching patient " nnn)
+  (let [sqlvec (fetch-patient-by-nnn-sqlvec {:nnn nnn})
+        results (do-sql opts sqlvec)]
+    (when-not (:success? results)
+      (log/error "failed to fetch patient with NNN:" nnn (:message results)))
+    (when-not (= 0 (:row-count results))
+      (-> (apply dissoc (first (:body results)) address-keys)
+          (assoc :ADDRESSES (map #(select-keys % address-keys) (:body results)))))))
 
 (defn fetch-patient-by-crn
   "Fetch a patient by CRN.

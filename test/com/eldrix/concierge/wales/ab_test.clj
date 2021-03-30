@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
             [aero.core :as aero]
-            [com.eldrix.concierge.wales.ab.pas :as pas]))
+            [com.eldrix.concierge.wales.ab-pas :as pas]))
 
 
 
