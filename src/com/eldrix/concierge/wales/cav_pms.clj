@@ -71,7 +71,7 @@
        (do (log/info "reusing existing valid authentication token" (:token token))
            (:token token))
        (when-let [new-token (do-login opts)]
-         (println "requested new authentication token: " new-token)
+         (log/info "requested new authentication token: " new-token)
          (reset! authentication-token {:token   new-token
                                        :expires (.plusMinutes now 10)})
          new-token)))))

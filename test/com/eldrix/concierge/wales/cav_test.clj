@@ -1,5 +1,7 @@
 (ns com.eldrix.concierge.wales.cav-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.pprint :as pprint]
+            [clojure.tools.logging :as log]
+            [clojure.test :refer :all]
             [clojure.java.io :as io]
             [aero.core :as aero]
             [com.eldrix.concierge.wales.cav-pms :as pms]))
@@ -21,10 +23,11 @@
 (deftest ^:live test-cav-clinic-list
   (let [config (cav-config)
         clinic-patients (pms/fetch-patients-for-clinics config ["neur58r" "neur58"] (java.time.LocalDate/of 2020 10 9))]
-    (clojure.pprint/print-table
-     (->> clinic-patients
-          (map #(select-keys % [:CONTACT_TYPE_DESC :START_TIME :END_TIME :HOSPITAL_ID ]))
-          (sort-by :START_TIME)))
+    (log/with-logs [*ns* :debug]
+      (pprint/print-table
+       (->> clinic-patients
+            (map #(select-keys % [:CONTACT_TYPE_DESC :START_TIME :END_TIME :HOSPITAL_ID]))
+            (sort-by :START_TIME))))
     (is (> (count clinic-patients) 0))))
 
 
