@@ -103,7 +103,7 @@
       first))
 
 (comment
-  (do-post! {:url "https://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx" :xml (make-get-demographics-request {:crn "T11111"})})
+  (do-post! {:url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx" :xml (make-get-demographics-request {:crn "T11111"})})
   (def fake-response {:status 200
                       :body   (slurp (io/resource "wales/ab-demog-resp-example.xml"))})
   fake-response
