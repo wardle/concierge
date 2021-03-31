@@ -23,11 +23,16 @@
 
 (defn format-nnn
   "Formats an NHS number for display purposes into 'XXX XXX XXXX'"
-  [nnn]
-  (apply str (remove nil? (interleave nnn [nil nil " " nil nil " " nil nil nil nil]))))
+  [^String nnn]
+  (if-not (= 10 (count nnn))
+    nnn
+    (str (subs nnn 0 3) " " (subs nnn 3 6) " " (subs nnn 6))))
 
 (comment
-  (valid? "1111111111"))
+  (valid? "1111111111")
+  (use 'criterium.core)
+  (format-nnn "1234567890")
+  (bench (format-nnn "11111111111")))
 
 
 
