@@ -108,8 +108,8 @@
 
 (comment
   (do
-    (require '[com.eldrix.concierge.config])
-    (def config (:wales.nhs/nadex (com.eldrix.concierge.config/config :dev)))
+    (require '[aero.core])
+    (def config (:wales.nhs/nadex (aero.core/read-config (io/resource "config.edn"))))
     (def bind-username (:default-bind-username config))
     (def bind-password (:default-bind-password config))
     (def pool (make-connection-pool)))
