@@ -115,11 +115,13 @@
    (with-open [c (.getConnection pool)]
      (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
      (let [results (.search c (SearchRequest.
-                                "DC=cymru,DC=nhs,DC=uk"
-                                SearchScope/SUB
-                                (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
-                                (into-array String returning-attributes)))]
-       (map parse-entry (.getSearchEntries results))))))
+                               "DC=cymru,DC=nhs,DC=uk"
+                               SearchScope/SUB
+                               (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
+                               (into-array String returning-attributes)))]
+       (->> (.getSearchEntries results)
+            (map parse-entry)
+            (map assoc-professional-registration-numbers))))))
 
 (comment
   (do
