@@ -74,10 +74,9 @@
           [_ gphc-number] (re-matches #"^GPhC:\s*(\d+)$" postOfficeBox)]
       (cond-> user
         gmc-number
-        (assoc :urn.oid.2.16.840.1.113883.2.1.3.2.4.18.29 gmc-number
-               :uk.org.hl7.fhir.Id/gmc-number gmc-number)
+        (assoc :gmc-number gmc-number)
         gphc-number
-        (assoc :uk.org.hl7.fhir.Id/gphc-number gphc-number)))))   ;;https://fhir.hl7.org.uk/Id/gmc-number
+        (assoc :gphc-number gphc-number)))))
 
 (defn parse-entry [^SearchResultEntry result]
   (into {} (map parse-attr (.getAttributes result))))
