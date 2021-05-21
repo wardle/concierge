@@ -63,16 +63,14 @@
     [(keyword n) v]))
 
 (defn assoc-professional-registration
-  "Attempt to infer professional registration number from user data.
+  "Attempt to infer professional regulator and code from user data.
   NHS Wales keeps the number in the postOfficeBox field of the national
   directory. I am not sure this is documented anywhere, but this should fail
   gracefully if this changes."
   [{:keys [postOfficeBox] :as user}]
-  (if-not postOfficeBox
-    user
-    (let [[_ auth code] (re-matches #"^(\w+)\s*:\s*(\d+)$" postOfficeBox)]
-      (when (and auth code)
-        (assoc user :professionalRegistration {:authority auth :code code})))))
+  (if-let [[_ auth code] (re-matches #"^(\w+)\s*:\s*(\d+)$" (or postOfficeBox ""))]
+    (assoc user :professionalRegistration {:regulator auth :code code})
+    user))
 
 (defn parse-entry [^SearchResultEntry result]
   (into {} (map parse-attr (.getAttributes result))))
@@ -101,24 +99,30 @@
       (first clauses)
       (Filter/createANDFilter ^Collection clauses))))
 
+(defn do-ldap-search
+  [^LDAPConnectionPool pool bind-username bind-password ^Filter search-filter]
+  {:pre [pool bind-username bind-password]}
+   (log/info "ldap bind with username " bind-username "filter:" (.toNormalizedString search-filter))
+  (with-open [c (.getConnection pool)]
+     (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
+     (seq (.getSearchEntries (.search c (SearchRequest.
+                               "DC=cymru,DC=nhs,DC=uk"
+                               SearchScope/SUB
+                               (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
+                               (into-array String returning-attributes)))))))
+
+
 (defn search
   "Search for users, either using their own credentials (and implicitly
    searching for themselves, or using specific generic binding credentials
    and the 'filter' specified."
-  ([^LDAPConnectionPool pool bind-username bind-password] (search pool bind-username bind-password (by-username bind-username)))
+  ([^LDAPConnectionPool pool bind-username bind-password] 
+   (search pool bind-username bind-password (by-username bind-username)))
   ([^LDAPConnectionPool pool bind-username bind-password ^Filter search-filter]
    {:pre [pool bind-username bind-password]}
-   (log/info "ldap bind with username " bind-username "filter:" (.toNormalizedString search-filter))
-   (with-open [c (.getConnection pool)]
-     (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
-     (let [results (.search c (SearchRequest.
-                               "DC=cymru,DC=nhs,DC=uk"
-                               SearchScope/SUB
-                               (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
-                               (into-array String returning-attributes)))]
-       (->> (.getSearchEntries results)
-            (map parse-entry)
-            (map assoc-professional-registration))))))
+   (->> (do-ldap-search pool bind-username bind-password search-filter)
+        (map parse-entry)
+        (map assoc-professional-registration))))
 
 (comment
   (do
