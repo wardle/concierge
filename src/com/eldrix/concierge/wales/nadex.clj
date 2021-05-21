@@ -62,21 +62,17 @@
             (let [v (.getValues attr)] (if (= 1 (count v)) (first v) v)))]
     [(keyword n) v]))
 
-(defn assoc-professional-registration-numbers
-  "Attempt to infer professional registration numbers from user data.
+(defn assoc-professional-registration
+  "Attempt to infer professional registration number from user data.
   NHS Wales keeps the number in the postOfficeBox field of the national
   directory. I am not sure this is documented anywhere, but this should fail
   gracefully if this changes."
   [{:keys [postOfficeBox] :as user}]
   (if-not postOfficeBox
     user
-    (let [[_ gmc-number] (re-matches #"^GMC:\s*(\d+)$" postOfficeBox)
-          [_ gphc-number] (re-matches #"^GPhC:\s*(\d+)$" postOfficeBox)]
-      (cond-> user
-        gmc-number
-        (assoc :gmc-number gmc-number)
-        gphc-number
-        (assoc :gphc-number gphc-number)))))
+    (let [[_ auth code] (re-matches #"^(\w+)\s*:\s*(\d+)$" postOfficeBox)]
+      (when (and auth code)
+        (assoc user :professionalRegistration {:authority auth :code code})))))
 
 (defn parse-entry [^SearchResultEntry result]
   (into {} (map parse-attr (.getAttributes result))))
@@ -106,9 +102,9 @@
       (Filter/createANDFilter ^Collection clauses))))
 
 (defn search
-  "Search for the user specified, either using their own credentials (and
-   implicitly searching for themselves, or using specific generic binding
-   credentials and the 'filter' specified."
+  "Search for users, either using their own credentials (and implicitly
+   searching for themselves, or using specific generic binding credentials
+   and the 'filter' specified."
   ([^LDAPConnectionPool pool bind-username bind-password] (search pool bind-username bind-password (by-username bind-username)))
   ([^LDAPConnectionPool pool bind-username bind-password ^Filter search-filter]
    {:pre [pool bind-username bind-password]}
@@ -122,7 +118,7 @@
                                (into-array String returning-attributes)))]
        (->> (.getSearchEntries results)
             (map parse-entry)
-            (map assoc-professional-registration-numbers))))))
+            (map assoc-professional-registration))))))
 
 (comment
   (do
