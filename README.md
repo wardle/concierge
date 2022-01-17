@@ -95,6 +95,32 @@ This is a `clojure` re-write of an original `golang`-based experiment.
 It is designed to provide modules that permit integration with a health and care ecosystem, abstracting services mainly using 
 namespaced identifiers and first-class identifier resolution and mapping.
 
+
+#### Proxy settings
+
+Proxy settings are managed manually. 
+
+You could add proxy settings to deps.edn for an application using this library.
+
+For example:
+
+```
+:test/live
+           {:extra-paths ["test"]
+            :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
+                          com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                     :sha     "b6b3193fcc42659d7e46ecd1884a228993441182"}
+                          ch.qos.logback/logback-classic {:mvn/version "1.2.3"}}
+            :main-opts   ["-m" "cognitect.test-runner"]
+            :jvm-opts ["-Dhttps.proxyHost=137.4.60.101" "-Dhttps.proxyPort=8080"]}
+```
+
+Will use the same proxy for all outgoing https requests. 
+
+Instead, most services take optional :proxy-host and :proxy-port parameters to permit à la carte 
+selection of a proxy for an individual service. An example is shown in the config.edn file in the
+live tests.
+
 #### Development
 
 Run compilation checks
