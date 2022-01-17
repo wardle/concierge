@@ -11,12 +11,15 @@
 
 (deftest ^:live test-fetch-patient
   (let [config (ab-demog-config)
-        pt1 (pas/fetch-patient (assoc config :crn "T11111"))
-        pt2 (pas/fetch-patient (assoc config :nhs-number "1231231234"))]
+        pt1 (pas/fetch-patient (assoc config :crn "T11111"))]
     (is pt1)
-    (is (= pt1 pt2))))
+    (is (= (:crn pt1) "T11111"))))
 
 
 (comment
-  
+  (def config (ab-demog-config))
+  (def pt1 (pas/fetch-patient (assoc config :crn "T11111")))
+  (def pt2 (pas/fetch-patient (assoc config :nhs-number "1231231234")))
+  pt1
+  pt2
   (run-tests))
