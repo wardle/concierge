@@ -15,7 +15,10 @@
            com.unboundid/unboundid-ldapsdk {:mvn/version "5.1.4"}
            selmer/selmer                   {:mvn/version "1.12.49"}}
 
- :aliases {
+ :aliases {:build {:deps       {io.github.clojure/tools.build {:git/tag "v0.7.5" :git/sha "34727f7"}
+                                slipset/deps-deploy           {:mvn/version "RELEASE"}}
+                   :ns-default build}
+
            :test/repl
            {:extra-paths ["test"]
             :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
@@ -26,7 +29,7 @@
            {:extra-paths ["test"]
             :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
                           com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                     :sha     "b6b3193fcc42659d7e46ecd1884a228993441182"}}
+                                                     :sha     "cc75980b43011773162b485f46f939dc5fba91e4"}}
             :main-opts   ["-m" "cognitect.test-runner" "-e" ":live"]}
 
            :test/live
@@ -63,12 +66,4 @@
 
            :lint/eastwood
            {:main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]
-            :extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}}
-
-           :jar
-           {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.0.206"}}
-            :main-opts  ["-m" "hf.depstar.jar" "target/concierge-v0.1.0.jar"]}
-
-           :uberjar
-           {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.0.206"}}
-            :main-opts  ["-m" "hf.depstar.uberjar" "target/concierge-full-v0.1.0.jar" "-C" "-m" "com.eldrix.concierge.core"]}}}
+            :extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}}}}
