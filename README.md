@@ -2,6 +2,7 @@
 
 [![Scc Count Badge](https://sloc.xyz/github/wardle/concierge)](https://github.com/wardle/concierge/)
 [![Scc Cocomo Badge](https://sloc.xyz/github/wardle/concierge?category=cocomo&avg-wage=100000)](https://github.com/wardle/concierge/)
+[![Clojars Project](https://img.shields.io/clojars/v/com.eldrix/concierge.svg)](https://clojars.org/com.eldrix/concierge)
 
 Concierge is a suite of health and care integration modules, abstracting and simplifing integrations with underlying health and care systems. 
 	
@@ -85,6 +86,7 @@ Future integrations that will be needed will be:
 
 * Welsh Results Reporting Services (WRRS) - although currently permission has not been available to access this service
 * Welsh Demographics Service (WDS) - which includes lookup via the NHS England Spine for NHS number tracing
+* Read access to national document repository - although it is unclear whether permission will be given to access this service
 
 You can think of concierge as a "socket adaptor" making it possible to plug-in your clinical application into a local ecosystem. Concierge abstracts those integrations into a cohesive set of APIs.
 
@@ -152,9 +154,39 @@ clj -M:test/live
 
 #### Building
 
-To build an uberjar that can be copied into legacy applications:
-clj -M:uberjar; cp target/concierge-full-v0.1.0.jar ~/Dev/rsdb/Frameworks/RSJars/Libraries  
+Build a library jar file:
+
+```shell
+clj -T:build jar
+```
+
+Install a library jar file into local maven repository:
+
+```shell
+clj -T:build install
+```
+
+Deploy to clojars:
+
+```shell
+clj -T:build deploy
+```
 
 #### Use as a library
 
-Add using deps.edn
+Check for the [latest release](https://clojars.org/com.eldrix/concierge), or build from source code. 
+You could reference using git coordinates if using clojure, or using maven if using java.
+
+e.g. include using deps.edn:
+```
+com.eldrix/concierge {:mvn/version "1.0.120"}
+```
+
+e.g. include using pom.xml:
+```xml
+<dependency>
+  <groupId>com.eldrix</groupId>
+  <artifactId>concierge</artifactId>
+  <version>1.0.120</version>
+</dependency>
+```
