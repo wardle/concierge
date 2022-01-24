@@ -12,17 +12,21 @@
       (b/delete {:path "target"}))
 
 (defn jar [_]
-      (clean nil)
-      (println "Building   :" lib version)
-      (b/write-pom {:class-dir class-dir
-                    :lib lib
-                    :version version
-                    :basis basis
-                    :src-dirs ["src"]})
-      (b/copy-dir {:src-dirs ["src" "resources"]
-                   :target-dir class-dir})
-      (b/jar {:class-dir class-dir
-              :jar-file jar-file}))
+  (clean nil)
+  (println "Building   :" lib version)
+  (b/write-pom {:class-dir class-dir
+                :lib       lib
+                :version   version
+                :basis     basis
+                :src-dirs  ["src"]
+                :scm       {:url                 "https://github.com/wardle/concierge"
+                            :tag                 (str "v" version)
+                            :connection          "scm:git:git://github.com/wardle/concierge.git"
+                            :developerConnection "scm:git:ssh://git@github.com/wardle/concierge.git"}})
+  (b/copy-dir {:src-dirs   ["src" "resources"]
+               :target-dir class-dir})
+  (b/jar {:class-dir class-dir
+          :jar-file  jar-file}))
 
 (defn install
       "Installs pom and library jar in local maven repository"
