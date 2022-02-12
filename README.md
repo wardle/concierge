@@ -59,6 +59,7 @@ It currently supports the following integrations:
 * Staff lookup
 * Cardiff and Vale Patient Administative System (PAS) integration - for demographics and appointments/scheduling.
 * Cardiff and Vale Document Repository service
+* Aneurin Bevan PAS integration
 * Sending text messages using the gov.uk Notify service.
 
 I have also built standalone libraries (embeddable into larger applications) and microservices
@@ -79,7 +80,6 @@ support for a generic service mechanism based on identifiers:
 
 I have integrations with the following systems, that are due to be ported to this new application:
 
-* Aneurin Bevan PAS integration
 * National document repository service (Welsh Care Records Service)
 
 Future integrations that will be needed will be:
