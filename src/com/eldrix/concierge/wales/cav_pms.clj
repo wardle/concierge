@@ -56,13 +56,13 @@
 
 (defonce authentication-token (atom {:token nil :expires nil}))
 
-(defn get-authentication-token
+(defn get-authentication-token!
   "Get a valid authentication token, either by re-using an existing
    valid token, or by requesting a new token from the web service.
    Parameters
    - opts     : connection configuration as per specification ::opts with the additional
    - force?   : force a request for a new token even if we already have active one."
-  ([opts] (get-authentication-token opts false))
+  ([opts] (get-authentication-token! opts false))
   ([opts force?]
    {:pre [(s/valid? ::opts opts)]}
    (let [token @authentication-token
@@ -76,6 +76,13 @@
          (reset! authentication-token {:token   new-token
                                        :expires (.plusMinutes now 10)})
          new-token)))))
+
+(defn- get-authentication-token
+  "DEPRECATED: use get-authentication-token!"
+  ([opts]
+   (get-authentication-token! false))
+  ([opts force?]
+  (get-authentication-token!)))
 
 (defn sqlvec->query
   "Convert a `sqlvec` to a SQL string."
@@ -97,11 +104,18 @@
   "CAV compatible DateTimeFormatter for times; immutable and thread safe."
   (DateTimeFormatter/ofPattern "HH:mm"))
 
+(def ^:private ^DateTimeFormatter admission-dtf
+  "A date time formatter for admission and discharge dates."
+  (DateTimeFormatter/ofPattern "dd/MM/yyyy HH:mm:ss"))
+
 (defn- parse-local-date [s]
-  (when-not (= 0 (count s)) (LocalDate/parse s df)))
+  (when-not (str/blank? s) (LocalDate/parse s df)))
 
 (defn- parse-local-datetime [s]
-  (when-not (= 0 (count s)) s (LocalDateTime/parse s dtf)))
+  (when-not (str/blank? s) (LocalDateTime/parse s dtf)))
+
+(defn- parse-adm-datetime [s]
+  (when-not (str/blank? s) (LocalDateTime/parse s admission-dtf)))
 
 (defn- parse-time [s]
   (when s
@@ -116,7 +130,10 @@
    :DATE_FROM          parse-local-date
    :DATE_TO            parse-local-date
    :START_TIME         parse-time
-   :END_TIME           parse-time})
+   :END_TIME           parse-time
+   :DATE_ADM           parse-adm-datetime
+   :DATE_DISC          parse-adm-datetime
+   :DATE_TCI           parse-adm-datetime})
 
 (defn- parse-column [loc]
   (let [k (keyword (zx/xml1-> loc (zx/attr :name)))
@@ -136,7 +153,7 @@
   [opts sqlvec]
   {:pre [(s/valid? ::opts opts) (vector? sqlvec)]}
   (let [req (selmer.parser/render-file (io/resource "wales/cav-sql-req.xml")
-                                       {:authentication-token (get-authentication-token opts)
+                                       {:authentication-token (get-authentication-token! opts)
                                         :sql-text             (sqlvec->query sqlvec)})
         parsed-xml (-> (perform-get-data req)
                        :body
@@ -211,6 +228,32 @@
   ([opts clinic-codes ^LocalDate date]
    {:pre [(s/valid? ::opts opts) (coll? clinic-codes)]}
    (mapcat #(fetch-patients-for-clinic opts % date) clinic-codes)))
+
+
+(defn fetch-admissions
+  "Fetch a sequence of admissions for a given patient.
+   Parameters:
+   - opts       : CAV configuration
+   - crn        : hospital CRN
+   - patient-id : internal CAV patient-identifier
+
+   The SQL for this needs the internal patient identifier, so we first fetch
+   by CRN in order to obtain that identifier, if not already provided.
+   
+   Each admission contains at least the following keys:
+   :CRN        - patient CRN
+   :NAME       - name of patient, for convenience
+   :PATI_ID    - internal CAV PMS patient identifier
+   :DATE_ADM   - date of admission (a java.time.LocalDateTime)
+   :DATE_DISCH - date of discharge (java.time.LocalDateTime)
+   :DATE_TCI   - date of 'to come in'"
+  [opts & {:keys [crn patient-id]}]
+  (when-let [pat-id (or patient-id (:ID (fetch-patient-by-crn opts crn)))]
+    (let [sqlvec (fetch-admissions-for-patient-sqlvec {:patiId pat-id})
+          results (do-sql opts sqlvec)]
+      (if-not (:success? results)
+        (log/error "failed to fetch admissions for patient" crn)
+        (:body results)))))
 
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
 (xml/alias-uri :cav "http://localhost/PMSInterfaceWebService")
@@ -305,14 +348,17 @@
   (pp/pprint (dissoc pt :ADDRESSES))
   (pp/pprint pt)
 
-  (get-authentication-token opts)
+  (get-authentication-token! opts)
   (def sql (fetch-patient-by-crn-sqlvec {:crn "999998" :type "A"}))
+
+  
+  (fetch-admissions-for-patient-sqlvec {})
 
   (do-sql opts sql)
   sql
   (sqlvec->query sql)
   (def req-xml (selmer.parser/render-file (io/resource "wales/cav-sql-req.xml")
-                                          {:authentication-token (get-authentication-token opts)
+                                          {:authentication-token (get-authentication-token! opts)
                                            :sql-text             (sqlvec->query sql)}))
   (println req-xml)
   (def response (perform-get-data req-xml))

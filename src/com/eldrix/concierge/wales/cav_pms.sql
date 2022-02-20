@@ -136,18 +136,11 @@ ward_stays w1,
        consultant_episodes coep,
        ward_stays wast
    Where
-       wast.date_from <= :dateTo And Nvl(wast.date_to, :dateFrom) >= :dateFrom
-       And coep.date_from <= :dateTo And Nvl(coep.date_to, :dateFrom) >= :dateFrom
-       and inst.activity_id = wast.ais_activity_id
+       inst.activity_id = wast.ais_activity_id
        And inst.activity_id = coep.activity_id
        And inst.status In ('01', '02', '05')
-       And wast.ward_id = Nvl(:wardId, wast.ward_id)
-       And coep.con_id = Nvl(:conId, coep.con_id)
-       And coep.spec_code = Nvl(:pSpecCode, coep.spec_code)
-       And inst.activity_id = Nvl(:activityId, inst.activity_id)
        And inst.pati_id = Nvl(:patiId, inst.pati_id)
        And spec.code (+) = coep.spec_code
-       And spec.spec_code (+) = Nvl(:pParSpecCode, spec.spec_code (+))
    Group By
        inst.pati_id,
        inst.refe_id,
