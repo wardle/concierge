@@ -51,7 +51,7 @@ ORDER BY LOCATIONS.DATE_FROM DESC
 
 -- :name fetch-patients-for-clinic :? :*
 -- :doc Fetch patients for the given clinic(s) by :clinic-code on the given :date-string (YYYY/MM/DD)
-SELECT People.ID, 
+SELECT People.ID,
        NHS_NO AS NHS_NUMBER,
        to_char(DATE_LAST_CHANGED, 'yyyy/mm/dd hh:mi:ss') as DATE_LAST_MODIFIED,
        PATIENT_IDENTIFIERS.PAID_TYPE||PATIENT_IDENTIFIERS.ID as HOSPITAL_ID,
