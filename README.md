@@ -102,7 +102,9 @@ namespaced identifiers and first-class identifier resolution and mapping.
 
 Proxy settings are managed manually. 
 
-You could add proxy settings to deps.edn for an application using this library.
+There are three options.
+
+1. You could add proxy settings to deps.edn for an application using this library.
 
 For example:
 
@@ -119,9 +121,19 @@ For example:
 
 Will use the same proxy for all outgoing https requests. 
 
-Instead, most services take optional :proxy-host and :proxy-port parameters to permit à la carte 
+2. Use specific per-service proxy configuration
+
+Most services take optional :proxy-host and :proxy-port parameters to permit à la carte 
 selection of a proxy for an individual service. An example is shown in the config.edn file in the
 live tests.
+
+3. Define proxy settings on the command line
+
+For example, using the clojure command line tools you can pass parameters directly to the JRE:
+
+```shell
+clj -J-Dhttps.proxyHost=192.168.0.1 -J-Dhttps.proxyPort=8080 -M:test/live
+```
 
 #### Development
 
