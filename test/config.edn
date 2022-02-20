@@ -2,8 +2,9 @@
 
  :wales.nhs/empi       {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
                         :processing-id "P"
-                        :proxy-host "137.4.60.101"
-                        :proxy-port 8080}
+                        :proxy-host    "137.4.60.101"
+                        :proxy-port    8080
+                        :timeout       2000}
  :wales.nhs/nadex      {:connection-pool-size  5
                         :default-bind-username #ref [:secrets :nadex-bind-username]
                         :default-bind-password #ref [:secrets :nadex-bind-password]}

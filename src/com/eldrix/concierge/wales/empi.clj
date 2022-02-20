@@ -194,23 +194,29 @@
 
 (defn- do-post!
   "Post a request to the EMPI."
-  [{:keys [url xml proxy-host proxy-port] :as req}]
+  [{:keys [url xml proxy-host proxy-port timeout] :or {timeout 2000} :as req}]
   (when-not url (throw (ex-info "no URL specified for EMPI endpoint" req)))
   (log/info "empi request:" (dissoc req :xml))
-  (let [has-proxy (and proxy-host proxy-port)]
-    (client/request (merge {:method       :post
-                            :url          url
-                            :content-type "text/xml; charset=\"utf-8\""
-                            :headers      {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
-                            :body         xml}
-                           (when has-proxy {:proxy-host proxy-host
-                                            :proxy-port proxy-port})))))
+  (let [has-proxy? (and proxy-host proxy-port)]
+    (client/request (merge
+                      {:method             :post
+                       :url                url
+                       :socket-timeout     timeout
+                       :connection-timeout timeout
+                       :content-type       "text/xml; charset=\"utf-8\""
+                       :headers            {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
+                       :body               xml}
+                      (when has-proxy? {:proxy-host proxy-host
+                                        :proxy-port proxy-port})))))
 
 
 (s/def ::url string?)
 (s/def ::processing-id string?)
+(s/def ::proxy-host string?)
+(s/def ::proxy-port int?)
+(s/def ::timeout int?)
 (s/def ::params (s/keys :req-un [::url ::processing-id]
-                        :opt-un [::proxy-host ::proxy-port]))
+                        :opt-un [::proxy-host ::proxy-port ::timeout]))
 
 (defn- make-identifier-request
   "Creates a request for an identifier search."
