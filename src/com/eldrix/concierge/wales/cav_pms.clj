@@ -27,6 +27,7 @@
 (declare fetch-patient-by-crn-sqlvec)
 (declare fetch-patient-by-nnn-sqlvec)
 (declare fetch-patients-for-clinic-sqlvec)
+(declare fetch-admissions-for-patient-sqlvec)
 (hugsql/def-sqlvec-fns "com/eldrix/concierge/wales/cav_pms.sql")
 
 (defn perform-get-data

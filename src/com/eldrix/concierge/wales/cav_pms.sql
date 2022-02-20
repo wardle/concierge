@@ -98,3 +98,69 @@ AND LOCATIONS.ORGA_PERS_ID (+) = PEOPLE.ID
 AND LOCATIONS.DATE_TO (+) IS NULL
 AND HEALTHCARE_PRACTITIONERS.PERS_ID (+) = PEOPLE.GP_ID
 AND EXTERNAL_ORGANISATIONS.ID (+) = PEOPLE.GPPR_ID
+
+-- :name fetch-admissions-for-patient :? :*
+-- :doc Fetch admissions for the given patient
+select
+Substr(PatientCrn2(b1.pati_id), 1, 7) crn,
+pers.surname||', '||pers.title||' '||pers.first_forename name,
+c1.id coepID,
+c1.con_id,
+b1.date_adm,
+b1.date_disch,
+i1.name ward,
+Decode(pers.dod, null, 'N', 'Y' ) deceased,
+b1.activity_id,
+b1.date_tci,
+papa.npi,
+papa.pathway_type,
+prl.papa_id, b1.refe_id,
+b1.pati_id,
+papa.health_risk_factor healthrisk
+from
+patient_pathway papa,
+papa_refe_link prl,
+people pers,
+internal_organisations i1,
+specialties s1,
+consultant_episodes c1,
+ward_stays w1,
+   (Select
+        inst.pati_id, inst.refe_id, inst.activity_id,
+        inst.date_adm, inst.date_disch, inst.date_tci,
+        Trim( Leading '0' From Substr(Max(To_Number(To_Char(wast.date_from, 'YYYYMMDD')||LPad(Replace(wast.time_from, ':', ''), 4, '0')||LPad(wast.activity_id, 10, '0'))), 13)) wast_id,
+        Trim( Leading '0' From Substr(Max(To_Number(To_Char(coep.date_from, 'YYYYMMDD')||LPad(Replace(coep.time_from, ':', ''), 4, '0')||LPad(coep.id, 10, '0'))), 13)) coep_id
+   From
+       inpatient_stays inst,
+       specialties spec,
+       consultant_episodes coep,
+       ward_stays wast
+   Where
+       wast.date_from <= :dateTo And Nvl(wast.date_to, :dateFrom) >= :dateFrom
+       And coep.date_from <= :dateTo And Nvl(coep.date_to, :dateFrom) >= :dateFrom
+       and inst.activity_id = wast.ais_activity_id
+       And inst.activity_id = coep.activity_id
+       And inst.status In ('01', '02', '05')
+       And wast.ward_id = Nvl(:wardId, wast.ward_id)
+       And coep.con_id = Nvl(:conId, coep.con_id)
+       And coep.spec_code = Nvl(:pSpecCode, coep.spec_code)
+       And inst.activity_id = Nvl(:activityId, inst.activity_id)
+       And inst.pati_id = Nvl(:patiId, inst.pati_id)
+       And spec.code (+) = coep.spec_code
+       And spec.spec_code (+) = Nvl(:pParSpecCode, spec.spec_code (+))
+   Group By
+       inst.pati_id,
+       inst.refe_id,
+       inst.activity_id,
+       inst.date_adm,
+       inst.date_disch,
+       inst.date_tci) b1
+Where
+ w1.activity_id = b1.wast_id
+ And c1.id = b1.coep_id
+ And s1.code (+) = c1.spec_code
+ And i1.id (+) = w1.ward_id
+ And pers.id = b1.pati_id
+ And prl.refe_id (+) = b1.refe_id
+ And papa.id (+) = prl.papa_id
+Order by b1.date_adm desc
