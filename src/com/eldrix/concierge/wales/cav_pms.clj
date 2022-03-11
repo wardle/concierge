@@ -132,7 +132,7 @@
    :START_TIME         parse-time
    :END_TIME           parse-time
    :DATE_ADM           parse-adm-datetime
-   :DATE_DISC          parse-adm-datetime
+   :DATE_DISCH         parse-adm-datetime
    :DATE_TCI           parse-adm-datetime})
 
 (defn- parse-column [loc]
