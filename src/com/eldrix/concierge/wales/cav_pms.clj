@@ -10,8 +10,7 @@
     [clojure.tools.logging.readable :as log]
     [clj-http.client :as client]
     [hugsql.core :as hugsql]
-    [selmer.parser]
-    [com.eldrix.concierge.nhs-number :as nnn])
+    [selmer.parser])
   (:import (java.time LocalTime LocalDate LocalDateTime)
            (java.time.format DateTimeFormatter DateTimeParseException)
            (java.io ByteArrayOutputStream)
