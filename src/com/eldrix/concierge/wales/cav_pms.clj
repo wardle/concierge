@@ -22,6 +22,7 @@
 (s/def ::user-string string?)
 (s/def ::opts (s/keys :req-un [::username ::password ::database ::user-string]))
 
+
 ;; (hugsql/def-db-fns "com/eldrix/concierge/wales/cav_pms.sql")
 (declare fetch-patient-by-crn-sqlvec)
 (declare fetch-patient-by-nnn-sqlvec)
@@ -344,7 +345,7 @@
   (get-authentication-token! opts)
   (def sql (fetch-patient-by-crn-sqlvec {:crn "999998" :type "A"}))
 
-  
+
   (fetch-admissions-for-patient-sqlvec {})
 
   (do-sql opts sql)
