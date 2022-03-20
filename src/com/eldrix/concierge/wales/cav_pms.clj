@@ -221,7 +221,8 @@
    {:pre [(s/valid? ::opts opts) (coll? clinic-codes)]}
    (mapcat #(fetch-patients-for-clinic opts % date) clinic-codes)))
 
-
+(s/fdef fetch-admissions
+  :args (s/cat :opts ::opts :patient (s/keys* :req-un [(or ::crn ::patient-id)])))
 (defn fetch-admissions
   "Fetch a sequence of admissions for a given patient.
    Parameters:
@@ -236,7 +237,7 @@
    :CRN        - patient CRN
    :NAME       - name of patient, for convenience
    :PATI_ID    - internal CAV PMS patient identifier
-   :DATE_ADM   - date of admission (a java.time.LocalDateTime)
+   :DATE_ADM   - date of admission (java.time.LocalDateTime)
    :DATE_DISCH - date of discharge (java.time.LocalDateTime)
    :DATE_TCI   - date of 'to come in'"
   [opts & {:keys [crn patient-id]}]
