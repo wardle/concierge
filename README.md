@@ -191,7 +191,7 @@ You could reference using git coordinates if using clojure, or using maven if us
 
 e.g. include using deps.edn:
 ```
-com.eldrix/concierge {:mvn/version "1.0.120"}
+com.eldrix/concierge {:mvn/version "RELEASE"}
 ```
 
 e.g. include using pom.xml:
@@ -199,6 +199,6 @@ e.g. include using pom.xml:
 <dependency>
   <groupId>com.eldrix</groupId>
   <artifactId>concierge</artifactId>
-  <version>1.0.120</version>
+  <version>1.0.139</version>
 </dependency>
 ```
