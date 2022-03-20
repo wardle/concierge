@@ -25,7 +25,7 @@
     (is (= "1234567890" (:value (first (filter #(= (:system %) "https://fhir.nhs.uk/Id/nhs-number") (:org.hl7.fhir.Patient/identifier patient1))))))))
 
 ;; run tests except these integration tests
-;; clj -A:test -e :live
+;; clj -M:test/unit
 (deftest ^:live test-empi-live
   (let [config (aero/read-config (io/resource "config.edn") {:profile :dev})]
     (empi/resolve! (:wales.nhs/empi config) "https://fhir.nhs.uk/Id/nhs-number" "1234567890")))
