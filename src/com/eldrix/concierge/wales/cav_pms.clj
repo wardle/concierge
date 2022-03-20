@@ -77,13 +77,6 @@
                                        :expires (.plusMinutes now 10)})
          new-token)))))
 
-(defn- get-authentication-token
-  "DEPRECATED: use get-authentication-token!"
-  ([opts]
-   (get-authentication-token! false))
-  ([opts force?]
-  (get-authentication-token!)))
-
 (defn sqlvec->query
   "Convert a `sqlvec` to a SQL string."
   [sqlvec]
