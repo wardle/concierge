@@ -12,10 +12,10 @@
            buddy/buddy-sign                {:mvn/version "3.4.333"}
            clj-http/clj-http               {:mvn/version "3.12.3"}
            com.layerware/hugsql-core       {:mvn/version "0.5.1"}
-           com.unboundid/unboundid-ldapsdk {:mvn/version "6.0.3"}
+           com.unboundid/unboundid-ldapsdk {:mvn/version "6.0.4"}
            selmer/selmer                   {:mvn/version "1.12.50"}}
 
- :aliases {:build {:deps       {io.github.clojure/tools.build {:git/tag "v0.7.5" :git/sha "34727f7"}
+ :aliases {:build {:deps       {io.github.clojure/tools.build {:git/tag "v0.8.1" :git/sha "7d40500"}
                                 slipset/deps-deploy           {:mvn/version "RELEASE"}}
                    :ns-default build}
 
@@ -37,12 +37,16 @@
             :extra-deps  {aero/aero                      {:mvn/version "1.1.6"}
                           com.cognitect/test-runner      {:git/url "https://github.com/cognitect-labs/test-runner.git"
                                                           :sha     "cc75980b43011773162b485f46f939dc5fba91e4"}
-                          ch.qos.logback/logback-classic {:mvn/version "1.2.10"}}
+                          ch.qos.logback/logback-classic {:mvn/version "1.2.11"}}
             :main-opts   ["-m" "cognitect.test-runner"]}
 
            :outdated
            {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
             :main-opts  ["-m" "antq.core"]}
+
+           :upgrade
+           {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
+            :main-opts  ["-m" "antq.core" "--upgrade"]}
 
            :check
            {:extra-deps {athos/clj-check
