@@ -136,6 +136,17 @@
              (or (get authority->system auth-code) auth-code))
    :value  (zx/xml1-> pid3 ::hl7/CX.1 zx/text)})
 
+(defn- parse-pid11
+  "Parse the patient address (PID.11) section of the Patient Demographics Query (PDQ)."
+  [pid11]
+  {:address1 (or (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.1 zx/text)
+                 (str (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.3 zx/text)
+                      (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.2 zx/text)))
+   :address2 (zx/xml1-> pid11 ::hl7/XAD.2 zx/text)
+   :address3 (zx/xml1-> pid11 ::hl7/XAD.3 zx/text)
+   :address4 (zx/xml1-> pid11 ::hl7/XAD.4 zx/text)
+   :postal-code (zx/xml1-> pid11 ::hl7/XAD.5 zx/text)})
+
 (defn- parse-telephone
   "Parse a telephone (PID.13 or PID.14) section of the Patient Demographics Query (PDQ)."
   [loc]
@@ -155,6 +166,7 @@
        :first-names          (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
        :title                (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)
        :gender               (get gender->gender (zx/xml1-> pid ::hl7/PID.8 zx/text))
+       :addresses            (zx/xml-> pid ::hl7/PID.11 parse-pid11)
        :telephones           (filter :telephone
                                      (concat (zx/xml-> pid ::hl7/PID.13 parse-telephone)
                                              (zx/xml-> pid ::hl7/PID.14 parse-telephone)))
