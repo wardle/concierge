@@ -313,6 +313,16 @@
     (log/info "empi result" result)
     result))
 
+(s/fdef resolve-fake
+  :args (s/cat :system string? :value string?)
+  :ret (s/coll-of map?))
+(defn resolve-fake
+  "Returns a fake response for a test patient with NHS number 1234567890."
+  [system value]
+  (when (and (= system "https://fhir.nhs.uk/Id/nhs-number")
+             (= value "1234567890"))
+    (parse-pdq {:status 200 :body (slurp (io/resource "wales/empi-resp-example.xml"))})))
+
 (comment
   (keys authorities)
 
