@@ -7,7 +7,7 @@
     [clojure.spec.alpha :as s]
     [clojure.tools.logging.readable :as log]
     [clojure.zip :as zip]
-    [clj-http.client :as client]
+    [clj-http.client :as http]
     [selmer.parser])
   (:import (java.util UUID)
            (java.time LocalDateTime)
@@ -264,16 +264,16 @@
   (when-not url (throw (ex-info "no URL specified for EMPI endpoint" req)))
   (log/info "empi request:" (dissoc req :xml))
   (let [has-proxy? (and proxy-host proxy-port)]
-    (client/request (merge
-                      {:method             :post
-                       :url                url
-                       :socket-timeout     timeout
-                       :connection-timeout timeout
-                       :content-type       "text/xml; charset=\"utf-8\""
-                       :headers            {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
-                       :body               xml}
-                      (when has-proxy? {:proxy-host proxy-host
-                                        :proxy-port proxy-port})))))
+    (http/request (merge
+                    {:method             :post
+                     :url                url
+                     :socket-timeout     timeout
+                     :connection-timeout timeout
+                     :content-type       "text/xml; charset=\"utf-8\""
+                     :headers            {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
+                     :body               xml}
+                    (when has-proxy? {:proxy-host proxy-host
+                                      :proxy-port proxy-port})))))
 
 
 (s/def ::url string?)
