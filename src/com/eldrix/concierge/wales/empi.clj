@@ -221,11 +221,13 @@
 
        :org.hl7.fhir.Patient/generalProctitioner
        [(when-let [surgery-id (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 zx/text)]
-          {:org.hl7.fhir.Reference/type       "Organization"
-           :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.nhs.uk/Id/ods-organization-code"
-                                               :org.hl7.fhir.Identifier/value  surgery-id}})
+          {:uk.nhs.fhir.Id/ods-organization-code surgery-id
+           :org.hl7.fhir.Reference/type          "Organization"
+           :org.hl7.fhir.Reference/identifier    {:org.hl7.fhir.Identifier/system "https://fhir.nhs.uk/Id/ods-organization-code"
+                                                  :org.hl7.fhir.Identifier/value  surgery-id}})
         (when-let [gp-id (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.4 ::hl7/XCN.1 zx/text)]
-          {:org.hl7.fhir.Reference/type       "Practitioner"
+          {:uk.org.hl7.fhir.Id/gmp-number     gp-id
+           :org.hl7.fhir.Reference/type       "Practitioner"
            :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.hl7.org.uk/Id/gmp-number"
                                                :org.hl7.fhir.Identifier/value  gp-id}})]}
       (when-let [date-death (parse-empi-date (zx/xml1-> pid ::hl7/PID.29 ::hl7/TS.1 zx/text))]
