@@ -296,14 +296,20 @@
         body (selmer.parser/render-file (io/resource "wales/empi-req.xml") req)]
     (assoc req :xml body)))
 
-
+(s/fdef resolve!
+  :args (s/cat :params ::params :system string? :value string?)
+  :ret (s/coll-of map?))
 (defn resolve!
-  "Performs an EMPI fetch using the identifier as defined by `system` and `value`"
+  "Performs an EMPI fetch using the identifier as defined by `system` and `value`.
+  For example,
+  ```
+  (resolve! params \"https://fhir.nhs.uk/Id/nhs-number\" \"1111111111\")
+  ```"
   [params system value]
   {:pre [(s/valid? ::params params)]}
   (let [result (-> (make-identifier-request system value params)
-                   (do-post!)
-                   (parse-pdq))]
+                   do-post!
+                   parse-pdq)]
     (log/info "empi result" result)
     result))
 
