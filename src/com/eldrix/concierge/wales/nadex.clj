@@ -4,6 +4,7 @@
             [clojure.java.io :as io]
             [clojure.tools.logging.readable :as log])
   (:import (com.unboundid.ldap.sdk LDAPConnectionPool LDAPConnection LDAPBindException LDAPConnectionOptions
+                                   FailoverServerSet
                                    SearchRequest SearchScope Filter Attribute SearchResultEntry)
            (com.unboundid.util.ssl TrustAllTrustManager SSLUtil)
            (java.util Collection)))
@@ -16,18 +17,31 @@
   "Creates a secure but unauthenticated connection, trusting all server certificates."
   []
   (LDAPConnection.
-    (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.)))
-    (doto (LDAPConnectionOptions.)
-      (.setConnectTimeoutMillis 2000)
-      (.setFollowReferrals false))
-    "cymru.nhs.uk"
-    636))
+   (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.)))
+   (doto (LDAPConnectionOptions.)
+     (.setConnectTimeoutMillis 2000)
+     (.setFollowReferrals false))
+   "cymru.nhs.uk"
+   636))
+
+(defn make-failover-server-set
+  []
+  (FailoverServerSet. (into-array ["7A4BVSRVDOM0001.cymru.nhs.uk"
+                                   "7A4BVSRVDOM0002.cymru.nhs.uk"
+                                   "7A4BVSRVDOM0003.cymru.nhs.uk"])
+                      (int-array [636 636 636])
+                      (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.)))
+                      (doto (LDAPConnectionOptions.)
+                        (.setConnectTimeoutMillis 2000)
+                        (.setFollowReferrals false))))
+
 
 (defn ^LDAPConnectionPool make-connection-pool
   "Make a connection pool to the NHS Wales 'NADEX' user directory."
   ([] (make-connection-pool 5))
   ([size]
-   (LDAPConnectionPool. (make-unauthenticated-connection) size)))
+   (LDAPConnectionPool. (make-failover-server-set) nil 0 size)))
+
 
 (defn can-authenticate?
   "Can the user 'username' authenticate using the 'password' specified?
