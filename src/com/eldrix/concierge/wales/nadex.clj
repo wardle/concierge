@@ -89,12 +89,12 @@
 (defn parse-entry [^SearchResultEntry result]
   (into {} (map parse-attr (.getAttributes result))))
 
-(defn by-username 
+(defn by-username
   "Create an LDAP filter to search by username."
   [^String username]
   (Filter/createEqualityFilter "sAMAccountName" username))
 
-(defn by-name 
+(defn by-name
   "Create an LDAP filter to search by name of individual.
    This searches both surname 'sn' and first name 'givenName' fields."
   [^String names]
@@ -105,7 +105,7 @@
 (defn by-job [^String name]
   (Filter/createSubAnyFilter "title" (into-array String (str/split name #"\s+"))))
 
-(defn by-params 
+(defn by-params
   "Create an LDAP filter to search for the specified arbitrary parameters."
   [params]
   (let [clauses (map (fn [[k v]] (Filter/createEqualityFilter ^String (name k) ^String v)) params)]
@@ -116,21 +116,21 @@
 (defn do-ldap-search
   [^LDAPConnectionPool pool bind-username bind-password ^Filter search-filter]
   {:pre [pool bind-username bind-password]}
-   (log/info "ldap bind with username " bind-username "filter:" (.toNormalizedString search-filter))
+  (log/info "ldap bind with username " bind-username "filter:" (.toNormalizedString search-filter))
   (with-open [c (.getConnection pool)]
-     (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
-     (seq (.getSearchEntries (.search c (SearchRequest.
-                               "DC=cymru,DC=nhs,DC=uk"
-                               SearchScope/SUB
-                               (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
-                               (into-array String returning-attributes)))))))
+    (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
+    (seq (.getSearchEntries (.search c (SearchRequest.
+                                         "DC=cymru,DC=nhs,DC=uk"
+                                         SearchScope/SUB
+                                         (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
+                                         (into-array String returning-attributes)))))))
 
 
 (defn search
   "Search for users, either using their own credentials (and implicitly
    searching for themselves, or using specific generic binding credentials
    and the 'filter' specified."
-  ([^LDAPConnectionPool pool bind-username bind-password] 
+  ([^LDAPConnectionPool pool bind-username bind-password]
    (search pool bind-username bind-password (by-username bind-username)))
   ([^LDAPConnectionPool pool bind-username bind-password ^Filter search-filter]
    {:pre [pool bind-username bind-password]}

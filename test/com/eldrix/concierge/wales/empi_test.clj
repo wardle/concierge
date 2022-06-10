@@ -16,14 +16,16 @@
 
 (deftest parse-response
   (let [fake-response {:status 200 :body (slurp (io/resource "wales/empi-resp-example.xml"))}
-        pdq (@#'empi/parse-pdq fake-response)]
+        pdq (@#'empi/parse-pdq fake-response)
+        patient1 (first pdq)
+        patient2 (second pdq)]
     (is (= 2 (count pdq)))
-    (is (= "TESTING" (:first-names (first pdq))))
-    (is (= {:system "http://hl7.org/fhir/administrative-gender" :value :male} (:gender (first pdq))))
-    (is (= "1234567890" (:value (first (filter #(= (:system %) "https://fhir.nhs.uk/Id/nhs-number") (:identifiers (first pdq)))))))))
+    (is (= "TESTING" (get-in patient1 [:org.hl7.fhir.Patient/name 0 :org.hl7.fhir.HumanName/family])))
+    (is (= "male" (:org.hl7.fhir.Patient/gender patient1)))
+    (is (= "1234567890" (:value (first (filter #(= (:system %) "https://fhir.nhs.uk/Id/nhs-number") (:org.hl7.fhir.Patient/identifier patient1))))))))
 
 ;; run tests except these integration tests
-;; clj -A:test -e :live
+;; clj -M:test/unit
 (deftest ^:live test-empi-live
   (let [config (aero/read-config (io/resource "config.edn") {:profile :dev})]
     (empi/resolve! (:wales.nhs/empi config) "https://fhir.nhs.uk/Id/nhs-number" "1234567890")))

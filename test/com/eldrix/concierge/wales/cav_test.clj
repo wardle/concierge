@@ -60,8 +60,8 @@
   
   (def admissions (pms/fetch-admissions config :crn "A999998"))
   (clojure.pprint/pprint (first admissions))
-  (run-tests)
-  )
+  (run-tests))
+
 
 
 

@@ -45,8 +45,8 @@
    :general-practitioner  (zx/xml1-> loc ::wcp/RegisteredGP zx/text)
    :surgery               (zx/xml1-> loc ::wcp/RegisteredGPPracticeCode zx/text)
    :sex                   (zx/xml1-> loc ::wcp/Sex ::wcp/Description zx/text)
-   :addresses             (zx/xml-> loc ::wcp/ContactAddress parse-address)
-   })
+   :addresses             (zx/xml-> loc ::wcp/ContactAddress parse-address)})
+
 
 (defn- soap->responses
   [root]
@@ -109,5 +109,4 @@
   fake-response
   (parse-demographics-responses fake-response)
 
-  (fetch-patient {:crn "T11111" :url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx"})
-  )
+  (fetch-patient {:crn "T11111" :url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx"}))

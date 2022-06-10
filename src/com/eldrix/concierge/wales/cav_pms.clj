@@ -10,8 +10,7 @@
     [clojure.tools.logging.readable :as log]
     [clj-http.client :as client]
     [hugsql.core :as hugsql]
-    [selmer.parser]
-    [com.eldrix.concierge.nhs-number :as nnn])
+    [selmer.parser])
   (:import (java.time LocalTime LocalDate LocalDateTime)
            (java.time.format DateTimeFormatter DateTimeParseException)
            (java.io ByteArrayOutputStream)
@@ -22,6 +21,7 @@
 (s/def ::database string?)
 (s/def ::user-string string?)
 (s/def ::opts (s/keys :req-un [::username ::password ::database ::user-string]))
+
 
 ;; (hugsql/def-db-fns "com/eldrix/concierge/wales/cav_pms.sql")
 (declare fetch-patient-by-crn-sqlvec)
@@ -76,13 +76,6 @@
          (reset! authentication-token {:token   new-token
                                        :expires (.plusMinutes now 10)})
          new-token)))))
-
-(defn- get-authentication-token
-  "DEPRECATED: use get-authentication-token!"
-  ([opts]
-   (get-authentication-token! false))
-  ([opts force?]
-  (get-authentication-token!)))
 
 (defn sqlvec->query
   "Convert a `sqlvec` to a SQL string."
@@ -229,7 +222,8 @@
    {:pre [(s/valid? ::opts opts) (coll? clinic-codes)]}
    (mapcat #(fetch-patients-for-clinic opts % date) clinic-codes)))
 
-
+(s/fdef fetch-admissions
+  :args (s/cat :opts ::opts :patient (s/keys* :req-un [(or ::crn ::patient-id)])))
 (defn fetch-admissions
   "Fetch a sequence of admissions for a given patient.
    Parameters:
@@ -244,7 +238,7 @@
    :CRN        - patient CRN
    :NAME       - name of patient, for convenience
    :PATI_ID    - internal CAV PMS patient identifier
-   :DATE_ADM   - date of admission (a java.time.LocalDateTime)
+   :DATE_ADM   - date of admission (java.time.LocalDateTime)
    :DATE_DISCH - date of discharge (java.time.LocalDateTime)
    :DATE_TCI   - date of 'to come in'"
   [opts & {:keys [crn patient-id]}]
@@ -351,7 +345,7 @@
   (get-authentication-token! opts)
   (def sql (fetch-patient-by-crn-sqlvec {:crn "999998" :type "A"}))
 
-  
+
   (fetch-admissions-for-patient-sqlvec {})
 
   (do-sql opts sql)
