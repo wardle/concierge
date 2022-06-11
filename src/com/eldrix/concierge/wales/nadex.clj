@@ -5,7 +5,7 @@
             [clojure.tools.logging.readable :as log])
   (:import (com.unboundid.ldap.sdk LDAPConnectionPool LDAPConnection LDAPBindException LDAPConnectionOptions
                                    FailoverServerSet
-                                   SearchRequest SearchScope Filter Attribute SearchResultEntry)
+                                   SearchRequest SearchScope Filter Attribute SearchResultEntry ServerSet)
            (com.unboundid.util.ssl TrustAllTrustManager SSLUtil)
            (java.util Collection)))
 
@@ -13,35 +13,46 @@
 ;; use a custom keystore or downgrade to using a non-encrypted channel of communication.
 ;; In the circumstances, a man-in-the-middle attack within an intranet environment is unlikely,
 ;; so we simply accept self-signed server certificates and at least encrypt our communications.
-(defn ^LDAPConnection make-unauthenticated-connection
-  "Creates a secure but unauthenticated connection, trusting all server certificates."
-  []
-  (LDAPConnection.
-   (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.)))
-   (doto (LDAPConnectionOptions.)
-     (.setConnectTimeoutMillis 2000)
-     (.setFollowReferrals false))
-   "cymru.nhs.uk"
-   636))
+(def ^:private default-options
+  {:host "cymru.nhs.uk"
+   :port 686
+   :trust-all-certificates? true
+   :pool-size 5
+   :timeout-milliseconds 2000
+   :follow-referrals? false})
+
+(defn make-connection-options
+  ^LDAPConnectionOptions [opts]
+  (let [{:keys [timeout-milliseconds follow-referrals?]} (merge default-options opts)]
+    (doto (LDAPConnectionOptions.)
+      (.setConnectTimeoutMillis timeout-milliseconds)
+      (.setFollowReferrals (boolean follow-referrals?)))))
+
+(defn make-unauthenticated-connection
+  "Creates a secure but unauthenticated connection."
+  (^LDAPConnection []
+   (make-unauthenticated-connection default-options))
+  (^LDAPConnection [{:keys [^String host port trust-all-certificates?] :as opts}]
+   (LDAPConnection.
+    (when trust-all-certificates? (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.))))
+    (make-unauthenticated-connection opts)
+    host (int port))))
 
 (defn make-failover-server-set
-  []
-  (FailoverServerSet. (into-array ["7A4BVSRVDOM0001.cymru.nhs.uk"
-                                   "7A4BVSRVDOM0002.cymru.nhs.uk"
-                                   "7A4BVSRVDOM0003.cymru.nhs.uk"])
-                      (int-array [636 636 636])
-                      (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.)))
-                      (doto (LDAPConnectionOptions.)
-                        (.setConnectTimeoutMillis 2000)
-                        (.setFollowReferrals false))))
+  ^ServerSet [{:keys [hosts port trust-all-certificates?] :as opts}]
+  (FailoverServerSet. (into-array hosts)
+                      (int-array (repeat (count hosts) port))
+                      (when trust-all-certificates? (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.))))
+                      (make-connection-options opts)))
 
-
-(defn ^LDAPConnectionPool make-connection-pool
-  "Make a connection pool to the NHS Wales 'NADEX' user directory."
-  ([] (make-connection-pool 5))
-  ([size]
-   (LDAPConnectionPool. (make-failover-server-set) nil 0 size)))
-
+(defn make-connection-pool
+  "Make a connection pool to the NHS Wales 'NADEX' user directory.
+  Unfortunately, NHS Wales uses a self-signed certificate, so you will need to
+  specify 'trust-all-certificates?'. This is the default."
+  ^LDAPConnectionPool [{:keys [hosts _host pool-size] :as opts}]
+  (if (seq hosts)
+     (LDAPConnectionPool. (make-failover-server-set opts) nil 0 (int pool-size))
+     (LDAPConnectionPool. (make-unauthenticated-connection opts) pool-size)))
 
 (defn can-authenticate?
   "Can the user 'username' authenticate using the 'password' specified?
