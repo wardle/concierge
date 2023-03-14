@@ -32,11 +32,11 @@
   "Creates a secure but unauthenticated connection."
   (^LDAPConnection []
    (make-unauthenticated-connection default-options))
-  (^LDAPConnection [{:keys [^String host port trust-all-certificates?] :as opts}]
-   (LDAPConnection.
-    (when trust-all-certificates? (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.))))
-    (make-unauthenticated-connection opts)
-    host (int port))))
+  (^LDAPConnection
+   [{:keys [^String host port trust-all-certificates?] :as opts}]
+   (let [socket-factory (when trust-all-certificates? (.createSSLSocketFactory (SSLUtil. (TrustAllTrustManager.))))
+         connection-options (make-connection-options opts)]
+     (LDAPConnection. socket-factory connection-options host (int port)))))
 
 (defn make-failover-server-set
   ^ServerSet [{:keys [hosts port trust-all-certificates?] :as opts}]
@@ -51,20 +51,20 @@
   specify 'trust-all-certificates?'. This is the default."
   ^LDAPConnectionPool [{:keys [hosts _host pool-size] :as opts}]
   (if (seq hosts)
-     (LDAPConnectionPool. (make-failover-server-set opts) nil 0 (int pool-size))
-     (LDAPConnectionPool. (make-unauthenticated-connection opts) pool-size)))
+    (LDAPConnectionPool. (make-failover-server-set (merge default-options opts)) nil 0 (int pool-size))
+    (LDAPConnectionPool. (make-unauthenticated-connection (merge default-options opts)) pool-size))
 
-(defn can-authenticate?
-  "Can the user 'username' authenticate using the 'password' specified?
+  (defn can-authenticate?
+    "Can the user 'username' authenticate using the 'password' specified?
    Parameters:
     - pool     : a connection pool
     - username : username
     - password : password."
-  [^LDAPConnectionPool pool username password]
-  (with-open [c (.getConnection pool)]
-    (try (.bind c (str username "@cymru.nhs.uk") password)
-         true
-         (catch LDAPBindException e false))))
+    [^LDAPConnectionPool pool username password]
+    (with-open [c (.getConnection pool)]
+      (try (.bind c (str username "@cymru.nhs.uk") password)
+           true
+           (catch LDAPBindException e false)))))
 
 (def ^:private returning-attributes
   ["sAMAccountName" "displayNamePrintable"
