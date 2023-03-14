@@ -40,6 +40,10 @@
                           ch.qos.logback/logback-classic {:mvn/version "1.2.11"}}
             :main-opts   ["-m" "cognitect.test-runner"]}
 
+           :dev
+           {:extra-paths ["test"]
+            :extra-deps {aero/aero {:mvn/version "1.1.6"}}}
+           
            :outdated
            {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
             :main-opts  ["-m" "antq.core"]}
