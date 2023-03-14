@@ -15,7 +15,7 @@
 ;; so we simply accept self-signed server certificates and at least encrypt our communications.
 (def ^:private default-options
   {:host "cymru.nhs.uk"
-   :port 686
+   :port 636
    :trust-all-certificates? true
    :pool-size 5
    :timeout-milliseconds 2000
@@ -49,22 +49,23 @@
   "Make a connection pool to the NHS Wales 'NADEX' user directory.
   Unfortunately, NHS Wales uses a self-signed certificate, so you will need to
   specify 'trust-all-certificates?'. This is the default."
-  ^LDAPConnectionPool [{:keys [hosts _host pool-size] :as opts}]
-  (if (seq hosts)
-    (LDAPConnectionPool. (make-failover-server-set (merge default-options opts)) nil 0 (int pool-size))
-    (LDAPConnectionPool. (make-unauthenticated-connection (merge default-options opts)) pool-size))
+  ^LDAPConnectionPool [{:keys [hosts] :as opts}]
+  (let [{:keys [pool-size] :as opts'} (merge default-options opts)]
+    (if (seq hosts)
+      (LDAPConnectionPool. (make-failover-server-set opts') nil 0 (int pool-size))
+      (LDAPConnectionPool. (make-unauthenticated-connection opts') (int pool-size)))))
 
-  (defn can-authenticate?
-    "Can the user 'username' authenticate using the 'password' specified?
+(defn can-authenticate?
+  "Can the user 'username' authenticate using the 'password' specified?
    Parameters:
     - pool     : a connection pool
     - username : username
     - password : password."
-    [^LDAPConnectionPool pool username password]
-    (with-open [c (.getConnection pool)]
-      (try (.bind c (str username "@cymru.nhs.uk") password)
-           true
-           (catch LDAPBindException e false)))))
+  [^LDAPConnectionPool pool username password]
+  (with-open [c (.getConnection pool)]
+    (try (.bind c (str username "@cymru.nhs.uk") password)
+         true
+         (catch LDAPBindException e false))))
 
 (def ^:private returning-attributes
   ["sAMAccountName" "displayNamePrintable"
@@ -110,9 +111,9 @@
    This searches both surname 'sn' and first name 'givenName' fields."
   [^String names]
   (Filter/createANDFilter ^Collection
-                          (->> (str/split names #"\s+")
-                               (map #(Filter/createORFilter [(Filter/createSubInitialFilter "sn" ^String %)
-                                                             (Filter/createSubInitialFilter "givenName" ^String %)])))))
+   (->> (str/split names #"\s+")
+        (map #(Filter/createORFilter [(Filter/createSubInitialFilter "sn" ^String %)
+                                      (Filter/createSubInitialFilter "givenName" ^String %)])))))
 (defn by-job [^String name]
   (Filter/createSubAnyFilter "title" (into-array String (str/split name #"\s+"))))
 
@@ -131,10 +132,10 @@
   (with-open [c (.getConnection pool)]
     (.bind c (str bind-username "@cymru.nhs.uk") bind-password)
     (seq (.getSearchEntries (.search c (SearchRequest.
-                                         "DC=cymru,DC=nhs,DC=uk"
-                                         SearchScope/SUB
-                                         (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
-                                         (into-array String returning-attributes)))))))
+                                        "DC=cymru,DC=nhs,DC=uk"
+                                        SearchScope/SUB
+                                        (Filter/createANDFilter [(Filter/createEqualityFilter "objectClass" "User") search-filter])
+                                        (into-array String returning-attributes)))))))
 
 
 (defn search
