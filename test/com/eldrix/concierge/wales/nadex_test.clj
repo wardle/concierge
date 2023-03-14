@@ -9,7 +9,7 @@
 
 (deftest ^:live test-login
   (let [config (nadex-config)]
-    (with-open [pool (nadex/make-connection-pool)]
+    (with-open [pool (nadex/make-connection-pool {})]
       (is (nadex/can-authenticate? pool (:default-bind-username config) (:default-bind-password config)))
       (is (nadex/search pool (:default-bind-username config) (:default-bind-password config))))))
 
