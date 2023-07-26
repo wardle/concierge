@@ -1,6 +1,7 @@
 (ns com.eldrix.concierge.nhs-number-test
-  (:require [clojure.test :refer :all]
-            [com.eldrix.concierge.nhs-number :as nhsnumber]))
+  (:require [clojure.string :as str]
+            [clojure.test :refer :all]
+            [com.eldrix.concierge.nhs-number :as nnn]))
 
 (def valid-examples
   ["1111111111"
@@ -20,11 +21,16 @@
 
 (deftest test-valid
   (doseq [nnn valid-examples]
-    (is (nhsnumber/valid? nnn))))
+    (is (nnn/valid? nnn))))
 
 (deftest test-invalid
   (doseq [nnn invalid-examples]
-    (is (not (nhsnumber/valid? nnn)))))
+    (is (not (nnn/valid? nnn)))))
+
+(deftest test-random-seq
+  (let [xs (nnn/random-sequence 999)]
+    (is (every? nnn/valid? (take 10000 xs)))
+    (is  (every? true? (map #(str/starts-with? % "999") (take 10000 xs))))))
 
 (comment
   (run-tests))
