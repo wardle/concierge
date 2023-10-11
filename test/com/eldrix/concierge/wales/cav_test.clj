@@ -4,7 +4,8 @@
             [clojure.test :refer :all]
             [clojure.java.io :as io]
             [aero.core :as aero]
-            [com.eldrix.concierge.wales.cav-pms :as pms]))
+            [com.eldrix.concierge.wales.cav-pms :as pms])
+  (:import (java.time LocalDate)))
 
 (defn cav-config []
   (:wales.nhs.cavuhb/pms (aero/read-config (io/resource "config.edn") {:profile :live})))
@@ -22,7 +23,7 @@
 
 (deftest ^:live test-cav-clinic-list
   (let [config (cav-config)
-        clinic-patients (pms/fetch-patients-for-clinics config ["neur58r" "neur58"] (java.time.LocalDate/of 2020 10 9))]
+        clinic-patients (pms/fetch-patients-for-clinics config ["neur58r" "neur58"] (LocalDate/of 2020 10 9))]
     (log/with-logs [*ns* :debug]
       (pprint/print-table
        (->> clinic-patients
