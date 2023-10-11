@@ -22,7 +22,17 @@
                 :scm       {:url                 "https://github.com/wardle/concierge"
                             :tag                 (str "v" version)
                             :connection          "scm:git:git://github.com/wardle/concierge.git"
-                            :developerConnection "scm:git:ssh://git@github.com/wardle/concierge.git"}})
+                            :developerConnection "scm:git:ssh://git@github.com/wardle/concierge.git"}
+                :pom-data  [[:description "A suite of health and care integration modules, abstracting and simplifying integrations with underlying health and care systems"]
+                            [:developers
+                             [:developer
+                              [:id "wardle"] [:name "Mark Wardle"] [:email "mark@wardle.org"] [:url "https://wardle.org"]]]
+                            [:organization [:name "Eldrix Ltd"]]
+                            [:licenses
+                             [:license
+                              [:name "The Apache Software License, Version 2.0"]
+                              [:url "http://www.apache.org/licenses/LICENSE-2.0.txt"]
+                              [:distribution "repo"]]]]})
   (b/copy-dir {:src-dirs   ["src" "resources"]
                :target-dir class-dir})
   (b/jar {:class-dir class-dir
