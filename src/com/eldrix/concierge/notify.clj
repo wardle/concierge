@@ -41,9 +41,9 @@
                            :personalisation opts}))
 
 (comment
-  (require '[com.eldrix.concierge.config])
-  (def api-key (get-in (#'com.eldrix.concierge.config/config :dev) [:uk.gov/notify :api-key]))
+  (require '[clojure.java.io :as io])
+  (require '[aero.core :as aero])
+  (def api-key (get-in (aero/read-config (io/resource "config.edn")) [:uk.gov/notify :api-key]))
   api-key
   (def template-id "765ef309-74d0-43d8-80ea-1dbd9e92a3e8")
-  (send-sms api-key "07786000000" template-id {:sender "System Administrator"})
-  )
+  (send-sms api-key "07786000000" template-id {:sender "System Administrator"}))
