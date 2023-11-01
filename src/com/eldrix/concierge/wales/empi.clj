@@ -7,7 +7,7 @@
     [clojure.spec.alpha :as s]
     [clojure.tools.logging.readable :as log]
     [clojure.zip :as zip]
-    [clj-http.client :as http]
+    [hato.client :as http]
     [selmer.parser])
   (:import (java.util UUID)
            (java.time LocalDateTime)

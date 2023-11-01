@@ -2,7 +2,7 @@
   "Integration with the Aneurin Bevan Myrddin web service. 
    See http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS for the test harness."
   (:require [clojure.tools.logging.readable :as log]
-            [clj-http.client :as client]
+            [hato.client :as client]
             [selmer.parser :as selmer]
             [clojure.java.io :as io]
             [clojure.data.xml :as xml]
@@ -77,17 +77,20 @@
 
 (defn- do-post!
   "Post a request to the myrddin web service."
-  [{:keys [url xml proxy-host proxy-port] :as req}]
+  [{:keys [url xml proxy-host proxy-port timeout] :as req}]
   (when-not url (throw (ex-info "no URL specified for myrddin endpoint" req)))
   (log/info "ab myrddin request:" (dissoc req :xml))
   (let [has-proxy (and proxy-host proxy-port)]
-    (client/request (merge {:method       :post
-                            :url          url
-                            :content-type "text/xml; charset=\"utf-8\""
-                            :headers      {"SOAPAction" "http://tempuri.org/GetPatientDemographics"}
-                            :body         xml}
-                           (when has-proxy {:proxy-host proxy-host
-                                            :proxy-port proxy-port})))))
+    (client/request (cond-> {:method       :post
+                             :url          url
+                             :content-type "text/xml; charset=\"utf-8\""
+                             :headers      {"SOAPAction" "http://tempuri.org/GetPatientDemographics"}
+                             :body         xml}
+                      has-proxy
+                      (assoc :proxy-host proxy-host
+                             :proxy-port proxy-port)
+                      timeout
+                      (assoc :timeout timeout)))))
 
 (defn fetch-patient
   "Fetch a patient using either the CRN or NHS number specified.

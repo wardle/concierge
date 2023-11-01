@@ -8,7 +8,7 @@
     [clojure.zip :as zip]
     [clojure.data.zip.xml :as zx]
     [clojure.tools.logging.readable :as log]
-    [clj-http.client :as client]
+    [hato.client :as client]
     [hugsql.core :as hugsql]
     [selmer.parser])
   (:import (java.time LocalTime LocalDate LocalDateTime)
