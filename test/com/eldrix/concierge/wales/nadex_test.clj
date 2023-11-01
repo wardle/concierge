@@ -13,6 +13,11 @@
       (is (nadex/can-authenticate? pool (:default-bind-username config) (:default-bind-password config)))
       (is (nadex/search pool (:default-bind-username config) (:default-bind-password config))))))
 
+(deftest ^:live test-failover
+  (let [config (:wales.nhs/nadex-failover (aero/read-config (io/resource "config.edn") {:profile :live}))]
+    (with-open [pool (nadex/make-connection-pool config)]
+      (is (nadex/can-authenticate? pool (:default-bind-username config) (:default-bind-password config))))))
+
 (comment
   (run-tests))
 

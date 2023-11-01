@@ -16,10 +16,13 @@
 (deftest ^:live test-cav-fetch-crn
   (let [config (cav-config)
         pt1 (pms/fetch-patient-by-crn config "a999998")
-        pt2 (pms/fetch-patient-by-nnn config "1231231234")]
-    (is (nil? (pms/fetch-patient-by-crn config "A0")))
+        pt2 (pms/fetch-patient-by-nnn config "1111111111")
+        pt3 (pms/fetch-patient-by-crn config (:HOSPITAL_ID pt2))
+        pt4 (pms/fetch-patient-by-crn config "A0")]
+    (is (nil? pt4))
     (is pt1)
-    (is (= pt1 pt2))))
+    (is pt2)
+    (is (= pt2 pt3))))
 
 (deftest ^:live test-cav-clinic-list
   (let [config (cav-config)
@@ -43,8 +46,8 @@
 (comment
   (def config (cav-config))
   config
-  (def pt (pms/fetch-patient-by-crn config "U126832"))
-
+  (def pt (pms/fetch-patient-by-crn config "A999998"))
+  pt
   (keys pt)
   (:NHS_NUMBER pt)
   (#'pms/parse-crn "A999998")
@@ -58,10 +61,11 @@
   (def sql (pms/fetch-admissions-for-patient-sqlvec {:patiId "1661010"}))
   sql
   (#'pms/do-sql config sql)
-  
+
   (def admissions (pms/fetch-admissions config :crn "A999998"))
   (clojure.pprint/pprint (first admissions))
-  (run-tests))
+  (run-tests)
+  )
 
 
 
