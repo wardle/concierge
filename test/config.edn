@@ -6,11 +6,11 @@
                         :proxy-port    8080
                         :timeout       2000}
  :wales.nhs/nadex      {:connection-pool-size  5
-                        :default-bind-username #ref [:secrets :nadex-bind-username]
-                        :default-bind-password #ref [:secrets :nadex-bind-password]}
- :wales.nhs.cavuhb/pms {:username    #ref [:secrets :cav-pms-username]
-                        :password    #ref [:secrets :cav-pms-password]
+                        :default-bind-username #ref [:secrets :wales :nadex :bind-username]
+                        :default-bind-password #ref [:secrets :wales :nadex :bind-password]}
+ :wales.nhs.cavuhb/pms {:username    #ref [:secrets :wales :cav :pms :username]
+                        :password    #ref [:secrets :wales :cav :pms :password]
                         :database    "vpmslive.world"
                         :user-string "patientcare-concierge"}
  :wales.nhs.abuhb/pas  {:demographics {:url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx"}}
- :uk.gov/notify        {:api-key #ref [:secrets :gov-uk-notify-api-key]}}
+ :uk.gov/notify        {:api-key #ref [:secrets :uk.gov :notify :api-key]}}
