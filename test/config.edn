@@ -8,6 +8,10 @@
  :wales.nhs/nadex      {:connection-pool-size  5
                         :default-bind-username #ref [:secrets :nadex-bind-username]
                         :default-bind-password #ref [:secrets :nadex-bind-password]}
+ :wales.nhs/nadex-failover {:hosts ["adm03srvdom0001.cymru.nhs.uk"]
+                            :connection-pool-size 5
+                            :default-bind-username #ref [:secrets :nadex-bind-username]
+                            :default-bind-password #ref [:secrets :nadex-bind-password]}
  :wales.nhs.cavuhb/pms {:username    #ref [:secrets :cav-pms-username]
                         :password    #ref [:secrets :cav-pms-password]
                         :database    "vpmslive.world"
