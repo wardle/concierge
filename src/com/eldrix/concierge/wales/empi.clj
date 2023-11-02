@@ -99,11 +99,11 @@
    "U" "unknown"})
 
 (def ^:private ^DateTimeFormatter dtf
-  "An EMPI compatible DateTimeFormatter; immutable and thread safe."
+  "An eMPI compatible DateTimeFormatter; immutable and thread safe."
   (DateTimeFormatter/ofPattern "yyyyMMddHHmmss"))
 
 (def ^:private ^DateTimeFormatter df
-  "An EMPI compatible DateFormatter; immutable and thread safe."
+  "An eMPI compatible DateFormatter; immutable and thread safe."
   (DateTimeFormatter/ofPattern "yyyyMMdd"))
 
 (defn ^:private default-request []
