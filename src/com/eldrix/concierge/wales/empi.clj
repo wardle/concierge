@@ -202,8 +202,8 @@
        :org.hl7.fhir.Patient/name
        [{:org.hl7.fhir.HumanName/use    "usual"
          :org.hl7.fhir.HumanName/family (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
-         :org.hl7.fhir.HumanName/given  [(zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)]
-         :org.hl7.fhir.HumanName/prefix [(zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)]}]
+         :org.hl7.fhir.HumanName/given  (zx/xml-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
+         :org.hl7.fhir.HumanName/prefix (zx/xml-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)}]
 
        :org.hl7.fhir.Patient/gender
        (get gender->gender (zx/xml1-> pid ::hl7/PID.8 zx/text))
