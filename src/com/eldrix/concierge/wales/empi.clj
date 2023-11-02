@@ -219,7 +219,7 @@
                       (zx/xml-> pid ::hl7/PID.13 #(parse-contact :home %))
                       (zx/xml-> pid ::hl7/PID.14 #(parse-contact :work %))))
 
-       :org.hl7.fhir.Patient/generalProctitioner
+       :org.hl7.fhir.Patient/generalPractitioner
        [(when-let [surgery-id (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 zx/text)]
           {:uk.nhs.fhir.Id/ods-organization-code surgery-id
            :org.hl7.fhir.Reference/type          "Organization"
