@@ -124,10 +124,10 @@
   "Parse a date in format `yyyMMdd` or `yyyyMMddHHmmss` from string `s`
   For example, `(parse-empi-date \"20200919121200\")`."
   [s]
-  (let [l (count s)]
-    (cond (= l 14) (LocalDateTime/parse s dtf)
-          (= l 8) (java.time.LocalDate/parse s df)
-          :else nil)))
+  (case (count s)
+    14 (LocalDateTime/parse s dtf)
+    8 (LocalDate/parse s df)
+    nil))
 
 (defn- parse-pid3
   "Parse the patient identifier (PID.3) section of the Patient Demographics Query (PDQ)."
