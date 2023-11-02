@@ -10,7 +10,7 @@
     [hato.client :as http]
     [selmer.parser])
   (:import (java.util UUID)
-           (java.time LocalDateTime)
+           (java.time LocalDate LocalDateTime)
            (java.time.format DateTimeFormatter)))
 
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
