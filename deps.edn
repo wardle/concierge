@@ -1,80 +1,83 @@
-{
- :paths   ["src" "resources" "classes"]
+{:paths
+ ["src" "resources" "classes"]
 
- :deps    {org.clojure/clojure             {:mvn/version "1.11.1"}
-           org.clojure/core.async          {:mvn/version "1.6.681"}
-           org.clojure/core.match          {:mvn/version "1.0.1"}
-           org.clojure/data.xml            {:mvn/version "0.2.0-alpha8"}
-           org.clojure/data.json           {:mvn/version "2.4.0"}
-           org.clojure/data.zip            {:mvn/version "1.0.0"}
-           org.clojure/tools.logging       {:mvn/version "1.2.4"}
+ :deps
+ {org.clojure/clojure                      {:mvn/version "1.11.1"}
+  org.clojure/core.async                   {:mvn/version "1.6.681"}
+  org.clojure/core.match                   {:mvn/version "1.0.1"}
+  org.clojure/data.xml                     {:mvn/version "0.2.0-alpha8"}
+  org.clojure/data.json                    {:mvn/version "2.4.0"}
+  org.clojure/data.zip                     {:mvn/version "1.0.0"}
+  org.clojure/tools.logging                {:mvn/version "1.2.4"}
 
-           com.eldrix/nhs-number           {:mvn/version "1.0.54"}
+  com.eldrix/nhs-number                    {:mvn/version "1.0.54"}
 
-           buddy/buddy-sign                {:mvn/version "3.5.351"}
-           hato/hato                       {:mvn/version "0.9.0"}
-           com.layerware/hugsql-core       {:mvn/version "0.5.3"}
-           com.unboundid/unboundid-ldapsdk {:mvn/version "6.0.10"}
-           selmer/selmer                   {:mvn/version "1.12.59"}}
+  buddy/buddy-sign                         {:mvn/version "3.5.351"}
+  hato/hato                                {:mvn/version "0.9.0"}
+  com.layerware/hugsql-core                {:mvn/version "0.5.3"}
+  com.unboundid/unboundid-ldapsdk          {:mvn/version "6.0.10"}
+  selmer/selmer                            {:mvn/version "1.12.59"}}}
 
- :aliases {:build
-           {:deps       {io.github.clojure/tools.build {:git/tag "v0.9.6" :git/sha "8e78bcc"}
-                         slipset/deps-deploy           {:mvn/version "RELEASE"}}
-            :ns-default build}
+:aliases
+{:build
+ {:deps       {io.github.clojure/tools.build {:git/tag "v0.9.6" :git/sha "8e78bcc"}
+               slipset/deps-deploy           {:mvn/version "RELEASE"}}
+  :ns-default build}
 
-           :test/repl
-           {:extra-paths ["test"]
-            :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
-                          com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                     :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}
-                          criterium/criterium       {:mvn/version "0.4.6"}}}
-           :test/unit
-           {:extra-paths ["test"]
-            :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
-                          com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                     :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}}
-            :main-opts   ["-m" "cognitect.test-runner" "-e" ":live"]}
+ :test/repl
+ {:extra-paths ["test"]
+  :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
+                com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                           :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}
+                criterium/criterium       {:mvn/version "0.4.6"}}}
 
-           :test/live
-           {:extra-paths ["test"]
-            :extra-deps  {aero/aero                      {:mvn/version "1.1.6"}
-                          com.cognitect/test-runner      {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                          :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}
-                          ch.qos.logback/logback-classic {:mvn/version "1.4.11"}}
-            :main-opts   ["-m" "cognitect.test-runner"]}
+ :test/unit
+ {:extra-paths ["test"]
+  :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
+                com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                           :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}}
+  :main-opts   ["-m" "cognitect.test-runner" "-e" ":live"]}
 
-           :dev
-           {:extra-paths ["test"]
-            :extra-deps  {aero/aero {:mvn/version "1.1.6"}}}
+ :test/live
+ {:extra-paths ["test"]
+  :extra-deps  {aero/aero                      {:mvn/version "1.1.6"}
+                com.cognitect/test-runner      {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}
+                ch.qos.logback/logback-classic {:mvn/version "1.4.11"}}
+  :main-opts   ["-m" "cognitect.test-runner"]}
 
-           :outdated
-           {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
-            :main-opts  ["-m" "antq.core"]}
+ :dev
+ {:extra-paths ["test"]
+  :extra-deps  {aero/aero {:mvn/version "1.1.6"}}}
 
-           :upgrade
-           {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
-            :main-opts  ["-m" "antq.core" "--upgrade"]}
+ :outdated
+ {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
+  :main-opts  ["-m" "antq.core"]}
 
-           :check
-           {:extra-deps {athos/clj-check
-                         {:git/url "https://github.com/athos/clj-check.git"
-                          :sha     "518d5a1cbfcd7c952f548e6dbfcb9a4a5faf9062"}}
-            :main-opts  ["-m" "clj-check.check"]}
+ :upgrade
+ {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
+  :main-opts  ["-m" "antq.core" "--upgrade"]}
 
-           :test/cloverage
-           {:extra-paths ["test"]
-            :extra-deps  {cloverage/cloverage {:mvn/version "RELEASE"}}
-            :main-opts   ["-m" "cloverage.coverage"
-                          "--src-ns-path" "src"
-                          "--test-ns-path" "test"]
-            :exec-fn     cloverage.coverage/run-project
-            :exec-args   {:src-ns-path  ["src"]
-                          :test-ns-path ["test"]}}
+ :check
+ {:extra-deps {athos/clj-check
+               {:git/url "https://github.com/athos/clj-check.git"
+                :sha     "518d5a1cbfcd7c952f548e6dbfcb9a4a5faf9062"}}
+  :main-opts  ["-m" "clj-check.check"]}
 
-           :lint/kondo
-           {:extra-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}
-            :main-opts  ["-m" "clj-kondo.main" "--lint" "src"]}
+ :test/cloverage
+ {:extra-paths ["test"]
+  :extra-deps  {cloverage/cloverage {:mvn/version "RELEASE"}}
+  :main-opts   ["-m" "cloverage.coverage"
+                "--src-ns-path" "src"
+                "--test-ns-path" "test"]
+  :exec-fn     cloverage.coverage/run-project
+  :exec-args   {:src-ns-path  ["src"]
+                :test-ns-path ["test"]}}
 
-           :lint/eastwood
-           {:main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]
-            :extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}}}}
+ :lint/kondo
+ {:extra-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}
+  :main-opts  ["-m" "clj-kondo.main" "--lint" "src"]}
+
+ :lint/eastwood
+ {:main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]
+  :extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}}}
