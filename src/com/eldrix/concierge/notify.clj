@@ -1,7 +1,7 @@
 (ns com.eldrix.concierge.notify
   "gov.uk Notify integration"
   (:require [clojure.string :as str]
-            [clj-http.client :as client]
+            [hato.client :as client]
             [buddy.sign.jwt :as jwt]))
 
 (defn parse-api-key [k]
