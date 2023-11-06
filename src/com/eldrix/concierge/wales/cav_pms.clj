@@ -11,10 +11,13 @@
     [hato.client :as client]
     [hugsql.core :as hugsql]
     [selmer.parser])
-  (:import (java.time LocalTime LocalDate LocalDateTime)
+  (:import (ca.uhn.fhir.model.api TemporalPrecisionEnum)
+           (java.time LocalTime LocalDate LocalDateTime ZoneId)
            (java.time.format DateTimeFormatter DateTimeParseException)
            (java.io ByteArrayOutputStream)
-           (java.util Base64)))
+           (java.util Base64 Date)
+           (org.hl7.fhir.r4.model Address ContactPoint DateTimeType DateType Enumerations Enumerations$AdministrativeGender HumanName Identifier Patient Period)
+           (org.hl7.fhir.r4.model.codesystems ContactPointSystem ContactPointUse)))
 
 (s/def ::username string?)
 (s/def ::password string?)
@@ -117,6 +120,10 @@
          (catch DateTimeParseException e
            (log/error "error parsing time: " e)))))
 
+(defn localdate->date
+  [d]
+  (Date/from (.toInstant (.atStartOfDay d (ZoneId/of "UTC")))))
+
 (def ^:private data-mappers
   {:DATE_BIRTH         parse-local-date
    :DATE_DEATH         parse-local-date
@@ -203,6 +210,71 @@
       (when-not (= 0 (:row-count results))
         (-> (apply dissoc (first (:body results)) address-keys)
             (assoc :ADDRESSES (map #(select-keys % address-keys) (:body results))))))))
+
+(defn address->r4
+  [{:keys [ADDRESS1 ADDRESS2 ADDRESS3 ADDRESS4 POSTCODE DATE_FROM DATE_TO]}]
+  (let [address (-> (Address.)
+                    (.setLine (remove str/blank? [ADDRESS1 ADDRESS2]))
+                    (.setCity ADDRESS3)
+                    (.setDistrict ADDRESS4)
+                    (.setPostalCode POSTCODE))]
+    (if (or DATE_FROM DATE_TO)
+      (.setPeriod address (cond-> (Period.)
+                            DATE_FROM (.setStart (localdate->date DATE_FROM) TemporalPrecisionEnum/DAY)
+                            DATE_TO (.setEnd (localdate->date DATE_TO) TemporalPrecisionEnum/DAY)))
+      address)))
+
+
+
+(defn patient->r4
+  [pt]
+  (-> (Patient.)
+      (.setActive true) ;; TODO: implement whether record active and *link* to other records for same patient
+      (.setIdentifier
+        (remove nil? [(when-let [nnn (:NHS_NUMBER pt)]
+                        (-> (Identifier.)
+                            (.setSystem "https://fhir.nhs.uk/Id/nhs-number")
+                            (.setValue nnn)))
+                      (-> (Identifier.)
+                          (.setSystem "https://fhir.cavuhb.nhs.wales/Id/pas-identifier")
+                          (.setValue (:HOSPITAL_ID pt)))]))
+      (.setName [(-> (HumanName.)
+                     (.setPrefix (remove str/blank? [(:TITLE pt)]))
+                     (.setGiven (remove str/blank? [(:FIRST_FORENAME pt)
+                                                    (:SECOND_FORENAME pt)
+                                                    (:OTHER_FORENAMES pt)]))
+                     (.setFamily (:LAST_NAME pt)))])
+      (.setGender (case (:SEX pt)
+                    "MALE" Enumerations$AdministrativeGender/MALE
+                    "FEMALE" Enumerations$AdministrativeGender/FEMALE
+                    "OTHER" Enumerations$AdministrativeGender/OTHER
+                    Enumerations$AdministrativeGender/UNKNOWN))
+      (.setBirthDate (DateTimeType. (localdate->date (:DATE_BIRTH pt)) (TemporalPrecisionEnum/DAY)))
+      (.setDeceased (when-let [dod (:DATE_DEATH pt)]
+                      (DateTimeType. (localdate->date dod) (TemporalPrecisionEnum/DAY))))
+      (.setContact
+        (remove nil? [(when-let [home (:HOME_PHONE_NO pt)]
+                        (-> (ContactPoint.)
+                            (.setUse ContactPointUse/HOME)
+                            (.setSystem ContactPointSystem/PHONE)
+                            (.setValue home)))
+                      (when-let [work (:WORK_PHONE_NO pt)]
+                        (-> (ContactPoint.)
+                            (.setUse ContactPointUse/WORK)
+                            (.setSystem ContactPointSystem/PHONE)
+                            (.setValue work)))]))
+      (.setGeneralPractitioner
+        (remove nil? [(when-let [surgery-id (:GPPR_ID pt)]
+                        {:uk.nhs.fhir.Id/ods-organization-code surgery-id
+                         :org.hl7.fhir.Reference/type          "Organization"
+                         :org.hl7.fhir.Reference/identifier    {:org.hl7.fhir.Identifier/system "https://fhir.nhs.uk/Id/ods-organization-code"
+                                                                :org.hl7.fhir.Identifier/value  surgery-id}})
+                      (when-let [gp-id (:GP_ID pt)]
+                        {:uk.org.hl7.fhir.Id/gmp-number     gp-id
+                         :org.hl7.fhir.Reference/type       "Practitioner"
+                         :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.hl7.org.uk/Id/gmp-number"
+                                                             :org.hl7.fhir.Identifier/value  gp-id}})]))
+      (.setAddress (map address->r4 (:ADDRESSES pt)))))
 
 (defn fetch-patients-for-clinic
   "Fetch a list of patients for a specific clinic, on the specified date."
@@ -323,7 +395,6 @@
 
   (parse-receive-by-crn-response response)
 
-  (require '[com.eldrix.concierge.config])
   (require '[clojure.pprint :as pp])
   (def opts (:wales.nhs.cav/pms (#'com.eldrix.concierge.config/config :live)))
   opts
