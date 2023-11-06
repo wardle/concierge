@@ -34,7 +34,7 @@
   "Executes a CAV 'GetData' request - as described in the XML specified."
   [^String request-xml]
   (client/post "http://cav-wcp02.cardiffandvale.wales.nhs.uk/PmsInterface/WebService/PMSInterfaceWebService.asmx/GetData"
-               {:form-params {:XmlDataBlockIn request-xml}
+               {:form-params        {:XmlDataBlockIn request-xml}
                 :connection-timeout 1000}))
 
 (defn do-login
