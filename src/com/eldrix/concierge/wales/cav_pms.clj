@@ -155,7 +155,7 @@
                        zip/xml-zip)]
     {:success?  (= "true" (zx/xml1-> parsed-xml :response :method :summary (zx/attr :success)))
      :message   (zx/xml1-> parsed-xml :response :method :message zx/text)
-     :row-count (Integer/parseInt (zx/xml1-> parsed-xml :response :method :summary (zx/attr :rowcount)))
+     :row-count (parse-long (zx/xml1-> parsed-xml :response :method :summary (zx/attr :rowcount)))
      :body      (zx/xml-> parsed-xml :response :method :row parse-row)}))
 
 (def ^:private crn-pattern
