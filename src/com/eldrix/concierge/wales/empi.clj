@@ -192,7 +192,9 @@
   [loc]
   (when-let [pid (zx/xml1-> loc ::hl7/PID)]
     (merge
-      {:org.hl7.fhir.Patient/identifier
+      {:org.hl7.fhir.Patient/active true
+
+       :org.hl7.fhir.Patient/identifier
        (zx/xml-> pid ::hl7/PID.3 parse-pid3)
 
        :org.hl7.fhir.Patient/name
