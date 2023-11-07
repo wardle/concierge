@@ -11,10 +11,8 @@
     [hato.client :as http]
     [selmer.parser])
   (:import (java.util Date UUID)
-           (java.time LocalDate LocalDateTime ZoneId)
-           (java.time.format DateTimeFormatter)
-           (org.hl7.fhir.r4.model Address ContactPoint ContactPoint$ContactPointSystem ContactPoint$ContactPointUse Enumerations$AdministrativeGender HumanName$NameUse Identifier Patient Reference StringType)
-           (org.hl7.fhir.r4.model.codesystems ContactPointUse)))
+           (java.time LocalDate LocalDateTime)
+           (java.time.format DateTimeFormatter)))
 
 (xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
 (xml/alias-uri :mpi "http://apps.wales.nhs.uk/mpi/")
@@ -132,47 +130,24 @@
     8 (LocalDate/parse s df)
     nil))
 
-(defn- empi-date->r4
-  [s]
-  (case (count s)
-    14 (Date/from (.toInstant (.atZone (LocalDateTime/parse s dtf) (ZoneId/of "UTC"))))
-    8 (Date/from (.toInstant (.atStartOfDay (LocalDate/parse s df) (ZoneId/of "UTC"))))
-    0 nil))
-
 (defn- parse-pid3
   "Parse the patient identifier (PID.3) section of the Patient Demographics Query (PDQ)."
   [pid3]
-  {:system (let [auth-code (zx/xml1-> pid3 ::hl7/CX.4 ::hl7/HD.1 zx/text)]
-             (or (get authority->system auth-code) auth-code))
-   :value  (zx/xml1-> pid3 ::hl7/CX.1 zx/text)})
-
-(defn- pid3->r4
-  [pid3]
-  (let [{:keys [system value]} (parse-pid3 pid3)]
-    (-> (Identifier.)
-        (.setSystem system)
-        (.setValue value))))
+  {:org.hl7.fhir.Identifier/system (let [auth-code (zx/xml1-> pid3 ::hl7/CX.4 ::hl7/HD.1 zx/text)]
+                                     (or (get authority->system auth-code) auth-code))
+   :org.hl7.fhir.Identifier/value  (zx/xml1-> pid3 ::hl7/CX.1 zx/text)})
 
 (defn- parse-pid11
   "Parse the patient address (PID.11) section of the Patient Demographics Query (PDQ)."
   [pid11]
-  {:address1    (or (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.1 zx/text)
-                    (str (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.3 zx/text)
-                         (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.2 zx/text)))
-   :address2    (zx/xml1-> pid11 ::hl7/XAD.2 zx/text)
-   :address3    (zx/xml1-> pid11 ::hl7/XAD.3 zx/text)
-   :address4    (zx/xml1-> pid11 ::hl7/XAD.4 zx/text)
-   :postal-code (zx/xml1-> pid11 ::hl7/XAD.5 zx/text)})
-
-(defn- pid11->r4
-  [pid11]
-  (let [{:keys [address1 address2 address3 address4 postal-code]} (parse-pid11 pid11)]
-    (-> (Address.)
-        (.setLine (map #(StringType. %) [address1 address2]))
-        (.setCity address3)
-        (.setDistrict address4)
-        (.setPostalCode postal-code))))
-
+  {:org.hl7.fhir.Address/line        (remove str/blank? [(zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.1 zx/text)
+                                                         (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.3 zx/text)
+                                                         (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.2 zx/text)
+                                                         (zx/xml1-> pid11 ::hl7/XAD.2 zx/text)])
+   :org.hl7.fhir.Address/city        (zx/xml1-> pid11 ::hl7/XAD.3 zx/text)
+   :org.hl7.fhir.Address/district    (zx/xml1-> pid11 ::hl7/XAD.4 zx/text)
+   :org.hl7.fhir.Address/postal-code (zx/xml1-> pid11 ::hl7/XAD.5 zx/text)
+   :org.hl7.fhir.Address/country     (zx/xml1-> pid11 ::hl7/XAD.6 zx/text)})
 
 (def ^:private email-pattern #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")
 
@@ -211,17 +186,9 @@
        :org.hl7.fhir.ContactPoint/value  value
        :org.hl7.fhir.ContactPoint/use    (name contact-type)})))
 
-(defn- contact->r4
-  [contact-type loc]
-  (when-let [{:org.hl7.fhir.ContactPoint/keys [system value use]} (parse-contact contact-type loc)]
-    (-> (ContactPoint.)
-        (.setSystem (ContactPoint$ContactPointSystem/fromCode system))
-        (.setValue value)
-        (.setUse (ContactPoint$ContactPointUse/fromCode use)))))
-
 (defn- response->data
-  "Parses a PDQ RSP_K21_RESPONSE XML fragment as a Clojure map representing with
-  namespaced keys from HL7 FHIR."
+  "Parses a PDQ RSP_K21_RESPONSE XML fragment as a Clojure map with namespaced
+  keys from HL7 FHIR."
   [loc]
   (when-let [pid (zx/xml1-> loc ::hl7/PID)]
     (merge
@@ -260,50 +227,7 @@
            :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.hl7.org.uk/Id/gmp-number"
                                                :org.hl7.fhir.Identifier/value  gp-id}})]}
       (when-let [date-death (parse-empi-date (zx/xml1-> pid ::hl7/PID.29 ::hl7/TS.1 zx/text))]
-        {:org.hl7.fhir.Patient/deceasedDateTime date-death
-         :org.hl7.fhir.Patient/deceasedBoolean  true}))))
-
-(defn- xon3->r4
-  [loc]
-  (let [surgery-id (zx/text loc)]
-    (-> (Reference.)
-        (.setType "Organization")
-        (.setIdentifier (-> (Identifier.)
-                            (.setSystem "https://fhir.nhs.uk/Id/ods-organization-code")
-                            (.setValue surgery-id))))))
-(defn xcn1->r4
-  [loc]
-  (let [gp-id (zx/text loc)]
-    (-> (Reference.)
-        (.setType "Practitioner")
-        (.setIdentifier (-> (Identifier.)
-                            (.setSystem "https://fhir.hl7.org.uk/Id/gmp-number")
-                            (.setValue gp-id))))))
-
-(defn- response->r4
-  "Parses a PDQ RSP_K21_RESPONSE XML fragment as a HL7 FHIR R4 Patient resource."
-  [loc]
-  (when-let [pid (zx/xml1-> loc ::hl7/PID)]
-    (-> (Patient.)
-        (.setIdentifier (zx/xml-> pid ::hl7/PID.3 pid3->r4))
-        (.setName [(-> (org.hl7.fhir.r4.model.HumanName.)
-                       (.setUse HumanName$NameUse/USUAL)
-                       (.setFamily (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text))
-                       (.setGiven (zx/xml-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text))
-                       (.setPrefix (zx/xml-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)))])
-        (.setGender (if-let [code (get gender->gender (zx/xml1-> pid ::hl7/PID.8 zx/text))]
-                      (Enumerations$AdministrativeGender/fromCode code)
-                      Enumerations$AdministrativeGender/UNKNOWN))
-        (.setBirthDate (empi-date->r4 (zx/xml1-> pid ::hl7/PID.7 ::hl7/TS.1 zx/text)))
-        (.setAddress (zx/xml-> pid ::hl7/PID.11 pid11->r4))
-        (.setTelecom (remove nil? (concat
-                                    (zx/xml-> pid ::hl7/PID.13 #(contact->r4 :home %))
-                                    (zx/xml-> pid ::hl7/PID.14 #(contact->r4 :work %)))))
-        (.setGeneralPractitioner
-          (concat
-            (zx/xml-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 xon3->r4)
-            (zx/xml-> loc ::hl7/PD1 ::hl7/PD1.4 ::hl7/XCN.1 xcn1->r4)))
-        (.setDeceased (empi-date->r4 (zx/xml1-> pid ::hl7/PID.29 ::hl7/TS.1 zx/text))))))
+        {:org.hl7.fhir.Patient/deceased date-death}))))
 
 (defn- soap->fhir
   [root]
@@ -315,16 +239,6 @@
             ::hl7/RSP_K21.QUERY_RESPONSE
             response->data))
 
-(defn- soap->r4
-  [root]
-  (zx/xml-> root
-            ::soap/Envelope
-            ::soap/Body
-            ::mpi/InvokePatientDemographicsQueryResponse
-            ::hl7/RSP_K21
-            ::hl7/RSP_K21.QUERY_RESPONSE
-            response->r4))
-
 (defn- soap->status
   "Return the status encoded within the response."
   [root] (zx/xml1-> root ::soap/Envelope ::soap/Body ::mpi/InvokePatientDemographicsQueryResponse
@@ -333,13 +247,13 @@
 (defn- parse-pdq
   "Turns a HTTP HL7 v2 PDQ response into a well-structured map with keys and values
   as per HL7 FHIR R4."
-  [response parser]
+  [response]
   (if (not= 200 (:status response))
     (throw (ex-info "failed empi request" response))
     (-> (:body response)
         xml/parse-str
         zip/xml-zip
-        parser)))
+        soap->fhir)))
 
 (defn- do-post!
   "Post a request to the EMPI."
@@ -377,15 +291,6 @@
         body (selmer.parser/render-file (io/resource "wales/empi-req.xml") req)]
     (assoc req :xml body)))
 
-
-(defn pdq->r4
-  "Perform a PDQ (Patient Demographics Query) and return results as HAPI FHIR R4
-  data structures."
-  [params system value]
-  (-> (make-identifier-request system value params)
-      do-post!
-      (parse-pdq soap->r4)))
-
 (s/fdef resolve!
   :args (s/cat :params ::params :system string? :value string?)
   :ret (s/coll-of map?))
@@ -399,7 +304,7 @@
   {:pre [(s/valid? ::params params)]}
   (let [result (-> (make-identifier-request system value params)
                    do-post!
-                   (parse-pdq soap->fhir))]
+                   parse-pdq)]
     (log/info "empi result" result)
     result))
 
@@ -411,8 +316,7 @@
   [system value]
   (when (and (= system "https://fhir.nhs.uk/Id/nhs-number")
              (= value "1234567890"))
-    (parse-pdq {:status 200 :body (slurp (io/resource "wales/empi-resp-example.xml"))}
-               soap->r4)))
+    (parse-pdq {:status 200 :body (slurp (io/resource "wales/empi-resp-example.xml"))})))
 
 (comment
   (keys authorities)
@@ -420,7 +324,7 @@
   (def req (make-identifier-request "https://fhir.cavuhb.nhs.wales/Id/pas-identifier" "A999998" {:url "https://google.com" :processing-id "P"}))
   (dissoc req :xml)
   (def response (do-post! req))
-  (parse-pdq response response->data)
+  (parse-pdq response)
   (require '[aero.core :as aero])
   (def config (:wales.nhs/empi (aero/read-config (io/resource "config.edn"))))
   config
@@ -430,10 +334,8 @@
 
   (def fake-response {:status 200
                       :body   (slurp (io/resource "wales/empi-resp-example.xml"))})
-  (parse-pdq fake-response response->data)
+  (parse-pdq fake-response)
   (def pts (resolve-fake "https://fhir.nhs.uk/Id/nhs-number" "1234567890"))
   (def pt1 (first pts))
-  (clojure.walk/postwalk
-    (fn [x]
-      (println x) x) pt))
+  pt1)
 
