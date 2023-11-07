@@ -140,14 +140,14 @@
 (defn- parse-pid11
   "Parse the patient address (PID.11) section of the Patient Demographics Query (PDQ)."
   [pid11]
-  {:org.hl7.fhir.Address/line        (remove str/blank? [(zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.1 zx/text)
-                                                         (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.3 zx/text)
-                                                         (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.2 zx/text)
-                                                         (zx/xml1-> pid11 ::hl7/XAD.2 zx/text)])
-   :org.hl7.fhir.Address/city        (zx/xml1-> pid11 ::hl7/XAD.3 zx/text)
-   :org.hl7.fhir.Address/district    (zx/xml1-> pid11 ::hl7/XAD.4 zx/text)
-   :org.hl7.fhir.Address/postal-code (zx/xml1-> pid11 ::hl7/XAD.5 zx/text)
-   :org.hl7.fhir.Address/country     (zx/xml1-> pid11 ::hl7/XAD.6 zx/text)})
+  {:org.hl7.fhir.Address/line       (remove str/blank? [(zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.1 zx/text)
+                                                        (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.3 zx/text)
+                                                        (zx/xml1-> pid11 ::hl7/XAD.1 ::hl7/SAD.2 zx/text)
+                                                        (zx/xml1-> pid11 ::hl7/XAD.2 zx/text)])
+   :org.hl7.fhir.Address/city       (zx/xml1-> pid11 ::hl7/XAD.3 zx/text)
+   :org.hl7.fhir.Address/district   (zx/xml1-> pid11 ::hl7/XAD.4 zx/text)
+   :org.hl7.fhir.Address/postalCode (zx/xml1-> pid11 ::hl7/XAD.5 zx/text)
+   :org.hl7.fhir.Address/country    (zx/xml1-> pid11 ::hl7/XAD.6 zx/text)})
 
 (def ^:private email-pattern #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")
 
