@@ -220,43 +220,53 @@
   TODO: add 'link' property to link to active record if this CRN has been
   inactivated."
   [{:keys [NHS_NUMBER HOSPITAL_ID TITLE LAST_NAME FIRST_FORENAME SECOND_FORENAME OTHER_FORENAMES
-           SEX DATE_BIRTH DATE_DEATH HOME_PHONE_NO WORK_PHONE_NO GP_ID GPPR_ID ADDRESSES]}]
-  {:org.hl7.fhir.Patient/active
-   true                                                     ;; TODO: use PMS to link to active version})
-   :org.hl7.fhir.Patient/identifier
-   (remove nil? [{:org.hl7.fhir.Identifier/system "https://fhir.cavuhb.nhs.wales/Id/pas-identifier"
-                  :org.hl7.fhir.Identifier/value  HOSPITAL_ID}
-                 (when NHS_NUMBER
-                   {:org.hl7.fhir.Identifier/system "https://fhir.nhs.uk/Id/nhs-number"
-                    :org.hl7.fhir.Identifier/value  NHS_NUMBER})])
-   :org.hl7.fhir.Patient/birthDate DATE_BIRTH
-   :org.hl7.fhir.Patient/deceased  DATE_DEATH
-   :org.hl7.fhir.Patient/name      [{:org.hl7.fhir.HumanName/family LAST_NAME
-                                     :org.hl7.fhir.HumanName/given  (remove str/blank? [FIRST_FORENAME SECOND_FORENAME OTHER_FORENAMES])
-                                     :org.hl7.fhir.HumanName/prefix TITLE
-                                     :org.hl7.fhir.HumanName/use    "usual"}]
-   :org.hl7.fhir.Patient/gender    (case SEX "M" "male", "F" "female", "unknown")
-   :org.hl7.fhir.Patient/telecom
-   (remove nil? [(when HOME_PHONE_NO
-                   {:org.hl7.fhir.ContactPoint/use    "home"
-                    :org.hl7.fhir.ContactPoint/system "phone"
-                    :org.hl7.fhir.ContactPoint/value  HOME_PHONE_NO})
-                 (when WORK_PHONE_NO
-                   {:org.hl7.fhir.ContactPoint/use    "work"
-                    :org.hl7.fhir.ContactPoint/system "phone"
-                    :org.hl7.fhir.ContactPoint/value  WORK_PHONE_NO})])
-   :org.hl7.fhir.Patient/address
-   (map address->fhir ADDRESSES)
-   :org.hl7.fhir.Patient/generalPractitioner
-   (remove nil? [(when GPPR_ID
-                   {:org.hl7.fhir.Reference/type       "Organization"
-                    :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.nhs.uk/Id/ods-organization-code"
-                                                        :org.hl7.fhir.Identifier/value  GPPR_ID}})
-                 (when GP_ID
-                   {:org.hl7.fhir.Reference/type       "Practitioner"
-                    :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.hl7.org.uk/Id/gmp-number"
-                                                        :org.hl7.fhir.Identifier/value  GP_ID}})])})
+           SEX DATE_BIRTH DATE_DEATH HOME_PHONE_NO WORK_PHONE_NO GP_ID GPPR_ID ADDRESSES] :as patient}]
+  (when patient
+    {:org.hl7.fhir.Patient/active
+     true                                                     ;; TODO: use PMS to link to active version})
+     :org.hl7.fhir.Patient/identifier
+     (remove nil? [{:org.hl7.fhir.Identifier/system "https://fhir.cavuhb.nhs.wales/Id/pas-identifier"
+                    :org.hl7.fhir.Identifier/value  HOSPITAL_ID}
+                   (when NHS_NUMBER
+                     {:org.hl7.fhir.Identifier/system "https://fhir.nhs.uk/Id/nhs-number"
+                      :org.hl7.fhir.Identifier/value  NHS_NUMBER})])
+     :org.hl7.fhir.Patient/birthDate DATE_BIRTH
+     :org.hl7.fhir.Patient/deceased  DATE_DEATH
+     :org.hl7.fhir.Patient/name      [{:org.hl7.fhir.HumanName/family LAST_NAME
+                                       :org.hl7.fhir.HumanName/given  (remove str/blank? [FIRST_FORENAME SECOND_FORENAME OTHER_FORENAMES])
+                                       :org.hl7.fhir.HumanName/prefix TITLE
+                                       :org.hl7.fhir.HumanName/use    "usual"}]
+     :org.hl7.fhir.Patient/gender    (case SEX "M" "male", "F" "female", "unknown")
+     :org.hl7.fhir.Patient/telecom
+     (remove nil? [(when HOME_PHONE_NO
+                     {:org.hl7.fhir.ContactPoint/use    "home"
+                      :org.hl7.fhir.ContactPoint/system "phone"
+                      :org.hl7.fhir.ContactPoint/value  HOME_PHONE_NO})
+                   (when WORK_PHONE_NO
+                     {:org.hl7.fhir.ContactPoint/use    "work"
+                      :org.hl7.fhir.ContactPoint/system "phone"
+                      :org.hl7.fhir.ContactPoint/value  WORK_PHONE_NO})])
+     :org.hl7.fhir.Patient/address
+     (map address->fhir ADDRESSES)
+     :org.hl7.fhir.Patient/generalPractitioner
+     (remove nil? [(when GPPR_ID
+                     {:org.hl7.fhir.Reference/type       "Organization"
+                      :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.nhs.uk/Id/ods-organization-code"
+                                                          :org.hl7.fhir.Identifier/value  GPPR_ID}})
+                   (when GP_ID
+                     {:org.hl7.fhir.Reference/type       "Practitioner"
+                      :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.hl7.org.uk/Id/gmp-number"
+                                                          :org.hl7.fhir.Identifier/value  GP_ID}})])}))
 
+(defn fetch-patient
+  "Fetch patient as defined by system/value, returning as FHIR representation."
+  [config system value]
+  (case system
+    "https://fhir.cavuhb.nhs.wales/Id/pas-identifier"
+    (patient->fhir (fetch-patient-by-crn config value))
+    "https://fhir.nhs.uk/Id/nhs-number"
+    (patient->fhir (fetch-patient-by-nnn config value))
+    nil))
 
 (defn fetch-patients-for-clinic
   "Fetch a list of patients for a specific clinic, on the specified date."
