@@ -22,10 +22,10 @@
  :default-bind-password #ref [:secrets :wales :nadex :bind-password]}
 
  :wales.nhs.cavuhb/pms
- {:username    #ref [:secrets :cav-pms-username]
-  :password    #ref [:secrets :cav-pms-password]
+ {:username    #ref [:secrets :cav :pms :username]
+  :password    #ref [:secrets :cav :pms :password]
   :database    "vpmslive.world"
- :user-string "patientcare-concierge"}
+  :user-string "patientcare-concierge"}
 
  :wales.nhs.abuhb/pas
  {:demographics {:url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx"}}}
