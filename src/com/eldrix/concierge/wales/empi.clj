@@ -1,15 +1,15 @@
 (ns com.eldrix.concierge.wales.empi
   "Integration with the NHS Wales Enterprise Master Patient Index (EMPI) service."
   (:require
-    [clojure.data.xml :as xml]
-    [clojure.data.zip.xml :as zx]
-    [clojure.java.io :as io]
-    [clojure.spec.alpha :as s]
-    [clojure.string :as str]
-    [clojure.tools.logging.readable :as log]
-    [clojure.zip :as zip]
-    [hato.client :as http]
-    [selmer.parser])
+   [clojure.data.xml :as xml]
+   [clojure.data.zip.xml :as zx]
+   [clojure.java.io :as io]
+   [clojure.spec.alpha :as s]
+   [clojure.string :as str]
+   [clojure.tools.logging.readable :as log]
+   [clojure.zip :as zip]
+   [hato.client :as http]
+   [selmer.parser])
   (:import (java.util Date UUID)
            (java.time LocalDate LocalDateTime)
            (java.time.format DateTimeFormatter)))
@@ -192,44 +192,44 @@
   [loc]
   (when-let [pid (zx/xml1-> loc ::hl7/PID)]
     (merge
-      {:org.hl7.fhir.Patient/active true
+     {:org.hl7.fhir.Patient/active true
 
-       :org.hl7.fhir.Patient/identifier
-       (zx/xml-> pid ::hl7/PID.3 parse-pid3)
+      :org.hl7.fhir.Patient/identifier
+      (zx/xml-> pid ::hl7/PID.3 parse-pid3)
 
-       :org.hl7.fhir.Patient/name
-       [{:org.hl7.fhir.HumanName/use    "usual"
-         :org.hl7.fhir.HumanName/family (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
-         :org.hl7.fhir.HumanName/given  (zx/xml-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
-         :org.hl7.fhir.HumanName/prefix (zx/xml-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)}]
+      :org.hl7.fhir.Patient/name
+      [{:org.hl7.fhir.HumanName/use    "usual"
+        :org.hl7.fhir.HumanName/family (zx/xml1-> pid ::hl7/PID.5 ::hl7/XPN.1 ::hl7/FN.1 zx/text)
+        :org.hl7.fhir.HumanName/given  (zx/xml-> pid ::hl7/PID.5 ::hl7/XPN.2 zx/text)
+        :org.hl7.fhir.HumanName/prefix (zx/xml-> pid ::hl7/PID.5 ::hl7/XPN.5 zx/text)}]
 
-       :org.hl7.fhir.Patient/gender
-       (get gender->gender (zx/xml1-> pid ::hl7/PID.8 zx/text))
+      :org.hl7.fhir.Patient/gender
+      (get gender->gender (zx/xml1-> pid ::hl7/PID.8 zx/text))
 
-       :org.hl7.fhir.Patient/birthDate
-       (parse-empi-date (zx/xml1-> pid ::hl7/PID.7 ::hl7/TS.1 zx/text))
+      :org.hl7.fhir.Patient/birthDate
+      (parse-empi-date (zx/xml1-> pid ::hl7/PID.7 ::hl7/TS.1 zx/text))
 
-       :org.hl7.fhir.Patient/address
-       (zx/xml-> pid ::hl7/PID.11 parse-pid11)
+      :org.hl7.fhir.Patient/address
+      (zx/xml-> pid ::hl7/PID.11 parse-pid11)
 
-       :org.hl7.fhir.Patient/telecom
-       (remove nil? (concat
-                      (zx/xml-> pid ::hl7/PID.13 #(parse-contact :home %))
-                      (zx/xml-> pid ::hl7/PID.14 #(parse-contact :work %))))
+      :org.hl7.fhir.Patient/telecom
+      (remove nil? (concat
+                    (zx/xml-> pid ::hl7/PID.13 #(parse-contact :home %))
+                    (zx/xml-> pid ::hl7/PID.14 #(parse-contact :work %))))
 
-       :org.hl7.fhir.Patient/generalPractitioner
-       [(when-let [surgery-id (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 zx/text)]
-          {:uk.nhs.fhir.Id/ods-organization-code surgery-id
-           :org.hl7.fhir.Reference/type          "Organization"
-           :org.hl7.fhir.Reference/identifier    {:org.hl7.fhir.Identifier/system "https://fhir.nhs.uk/Id/ods-organization-code"
-                                                  :org.hl7.fhir.Identifier/value  surgery-id}})
-        (when-let [gp-id (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.4 ::hl7/XCN.1 zx/text)]
-          {:uk.org.hl7.fhir.Id/gmp-number     gp-id
-           :org.hl7.fhir.Reference/type       "Practitioner"
-           :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.hl7.org.uk/Id/gmp-number"
-                                               :org.hl7.fhir.Identifier/value  gp-id}})]}
-      (when-let [date-death (parse-empi-date (zx/xml1-> pid ::hl7/PID.29 ::hl7/TS.1 zx/text))]
-        {:org.hl7.fhir.Patient/deceased date-death}))))
+      :org.hl7.fhir.Patient/generalPractitioner
+      [(when-let [surgery-id (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.3 ::hl7/XON.3 zx/text)]
+         {:uk.nhs.fhir.Id/ods-organization-code surgery-id
+          :org.hl7.fhir.Reference/type          "Organization"
+          :org.hl7.fhir.Reference/identifier    {:org.hl7.fhir.Identifier/system "https://fhir.nhs.uk/Id/ods-organization-code"
+                                                 :org.hl7.fhir.Identifier/value  surgery-id}})
+       (when-let [gp-id (zx/xml1-> loc ::hl7/PD1 ::hl7/PD1.4 ::hl7/XCN.1 zx/text)]
+         {:uk.org.hl7.fhir.Id/gmp-number     gp-id
+          :org.hl7.fhir.Reference/type       "Practitioner"
+          :org.hl7.fhir.Reference/identifier {:org.hl7.fhir.Identifier/system "https://fhir.hl7.org.uk/Id/gmp-number"
+                                              :org.hl7.fhir.Identifier/value  gp-id}})]}
+     (when-let [date-death (parse-empi-date (zx/xml1-> pid ::hl7/PID.29 ::hl7/TS.1 zx/text))]
+       {:org.hl7.fhir.Patient/deceased date-death}))))
 
 (defn- soap->fhir
   [root]
@@ -263,17 +263,15 @@
   (when-not url (throw (ex-info "no URL specified for EMPI endpoint" req)))
   (log/info "empi request:" (dissoc req :xml))
   (let [has-proxy? (and proxy-host proxy-port)]
-    (http/request (merge
-                    {:method             :post
-                     :url                url
-                     :socket-timeout     timeout
-                     :connection-timeout timeout
-                     :content-type       "text/xml; charset=\"utf-8\""
-                     :headers            {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
-                     :body               xml}
-                    (when has-proxy? {:proxy-host proxy-host
-                                      :proxy-port proxy-port})))))
-
+    (http/request (cond->
+                   {:method             :post
+                    :url                url
+                    :timeout            timeout
+                    :content-type       "text/xml; charset=\"utf-8\""
+                    :headers            {"SOAPAction" "http://apps.wales.nhs.uk/mpi/InvokePatientDemographicsQuery"}
+                    :body               xml}
+                    has-proxy? (assoc :proxy-host proxy-host
+                                      :proxy-port proxy-port)))))
 
 (s/def ::url string?)
 (s/def ::processing-id string?)
