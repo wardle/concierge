@@ -1,4 +1,4 @@
-{:secrets #include #join [#env HOME "/.secrets.edn"]
+ {:secrets #include #join [#env HOME "/.secrets.edn"]
 
  :uk.gov/notify
  {:api-key #ref [:secrets :uk.gov :notify :api-key]}
@@ -13,22 +13,22 @@
  :wales.nhs/nadex
  {:connection-pool-size  5
   :default-bind-username #ref [:secrets :wales :nadex :bind-username]
-  :default-bind-password #ref [:secrets :wales :nadex :bind-password]}}
+  :default-bind-password #ref [:secrets :wales :nadex :bind-password]}
 
-:wales.nhs/nadex-failover
-{:hosts                 ["adm03srvdom0001.cymru.nhs.uk"]
+ :wales.nhs/nadex-failover
+ {:hosts                 ["adm03srvdom0001.cymru.nhs.uk"]
  :connection-pool-size  5
  :default-bind-username #ref [:secrets :wales :nadex :bind-username]
  :default-bind-password #ref [:secrets :wales :nadex :bind-password]}
 
-:wales.nhs.cavuhb/pms
-{:username    #ref [:secrets :cav-pms-username]
- :password    #ref [:secrets :cav-pms-password]
- :database    "vpmslive.world"
+ :wales.nhs.cavuhb/pms
+ {:username    #ref [:secrets :cav-pms-username]
+  :password    #ref [:secrets :cav-pms-password]
+  :database    "vpmslive.world"
  :user-string "patientcare-concierge"}
 
-:wales.nhs.abuhb/pas
-{:demographics {:url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx"}}
+ :wales.nhs.abuhb/pas
+ {:demographics {:url "http://abbcwsb.cymru.nhs.uk/ABHBMyrddinWS/patient.asmx"}}
 
-:uk.gov/notify
-{:api-key #ref [:secrets :uk.gov :notify :api-key]}
+ :uk.gov/notify
+ {:api-key #ref [:secrets :uk.gov :notify :api-key]}}
