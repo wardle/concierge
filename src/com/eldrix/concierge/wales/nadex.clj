@@ -156,7 +156,7 @@
     (def config (:wales.nhs/nadex (aero.core/read-config (io/resource "config.edn"))))
     (def bind-username (:default-bind-username config))
     (def bind-password (:default-bind-password config))
-    (def pool (make-connection-pool)))
+    (def pool (make-connection-pool {})))
   bind-username
   bind-password
   (can-authenticate? pool bind-username bind-password)
