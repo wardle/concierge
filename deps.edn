@@ -20,64 +20,71 @@
 
  :aliases
  {:build
-   {:deps       {io.github.clojure/tools.build {:git/tag "v0.9.6" :git/sha "8e78bcc"}
-                 slipset/deps-deploy           {:mvn/version "RELEASE"}}
-    :ns-default build}
+  {:deps       {io.github.clojure/tools.build {:git/tag "v0.9.6" :git/sha "8e78bcc"}
+                slipset/deps-deploy           {:mvn/version "RELEASE"}}
+   :ns-default build}
 
-   :test/repl
-   {:extra-paths ["test"]
-    :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
-                  com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                             :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}
-                  criterium/criterium       {:mvn/version "0.4.6"}}}
+  :nrepl
+  {:extra-deps {nrepl/nrepl       {:mvn/version "1.2.0"}
+                cider/cider-nrepl {:mvn/version "0.49.0"}}
+   :main-opts  ["--main" "nrepl.cmdline"
+                "--middleware" "[cider.nrepl/cider-middleware]"
+                "--interactive"]}
 
-   :test/unit
-   {:extra-paths ["test"]
-    :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
-                  com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                             :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}}
-    :main-opts   ["-m" "cognitect.test-runner" "-e" ":live"]}
+  :test/repl
+  {:extra-paths ["test"]
+   :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
+                 com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                            :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}
+                 criterium/criterium       {:mvn/version "0.4.6"}}}
 
-   :test/live
-   {:extra-paths ["test"]
-    :extra-deps  {aero/aero                      {:mvn/version "1.1.6"}
-                  com.cognitect/test-runner      {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                  :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}
-                  ch.qos.logback/logback-classic {:mvn/version "1.4.11"}}
-    :main-opts   ["-m" "cognitect.test-runner"]}
+  :test/unit
+  {:extra-paths ["test"]
+   :extra-deps  {aero/aero                 {:mvn/version "1.1.6"}
+                 com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                            :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}}
+   :main-opts   ["-m" "cognitect.test-runner" "-e" ":live"]}
 
-   :dev
-   {:extra-paths ["test"]
-    :extra-deps  {aero/aero {:mvn/version "1.1.6"}}}
+  :test/live
+  {:extra-paths ["test"]
+   :extra-deps  {aero/aero                      {:mvn/version "1.1.6"}
+                 com.cognitect/test-runner      {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                 :sha     "7284cda41fb9edc0f3bc6b6185cfb7138fc8a023"}
+                 ch.qos.logback/logback-classic {:mvn/version "1.4.11"}}
+   :main-opts   ["-m" "cognitect.test-runner"]}
 
-   :outdated
-   {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
-    :main-opts  ["-m" "antq.core"]}
+  :dev
+  {:extra-paths ["test"]
+   :extra-deps  {aero/aero {:mvn/version "1.1.6"}}}
 
-   :upgrade
-   {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
-    :main-opts  ["-m" "antq.core" "--upgrade"]}
+  :outdated
+  {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
+   :main-opts  ["-m" "antq.core"]}
 
-   :check
-   {:extra-deps {athos/clj-check
-                 {:git/url "https://github.com/athos/clj-check.git"
-                  :sha     "518d5a1cbfcd7c952f548e6dbfcb9a4a5faf9062"}}
-    :main-opts  ["-m" "clj-check.check"]}
+  :upgrade
+  {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}}
+   :main-opts  ["-m" "antq.core" "--upgrade"]}
 
-   :test/cloverage
-   {:extra-paths ["test"]
-    :extra-deps  {cloverage/cloverage {:mvn/version "RELEASE"}}
-    :main-opts   ["-m" "cloverage.coverage"
-                  "--src-ns-path" "src"
-                  "--test-ns-path" "test"]
-    :exec-fn     cloverage.coverage/run-project
-    :exec-args   {:src-ns-path  ["src"]
-                  :test-ns-path ["test"]}}
+  :check
+  {:extra-deps {athos/clj-check
+                {:git/url "https://github.com/athos/clj-check.git"
+                 :sha     "518d5a1cbfcd7c952f548e6dbfcb9a4a5faf9062"}}
+   :main-opts  ["-m" "clj-check.check"]}
 
-   :lint/kondo
-   {:extra-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}
-    :main-opts  ["-m" "clj-kondo.main" "--lint" "src"]}
+  :test/cloverage
+  {:extra-paths ["test"]
+   :extra-deps  {cloverage/cloverage {:mvn/version "RELEASE"}}
+   :main-opts   ["-m" "cloverage.coverage"
+                 "--src-ns-path" "src"
+                 "--test-ns-path" "test"]
+   :exec-fn     cloverage.coverage/run-project
+   :exec-args   {:src-ns-path  ["src"]
+                 :test-ns-path ["test"]}}
 
-   :lint/eastwood
-   {:main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]
-    :extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}}}}
+  :lint/kondo
+  {:extra-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}
+   :main-opts  ["-m" "clj-kondo.main" "--lint" "src"]}
+
+  :lint/eastwood
+  {:main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]
+   :extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}}}}
