@@ -10,7 +10,7 @@
    [clojure.zip :as zip]
    [hato.client :as http]
    [selmer.parser])
-  (:import (java.util Date UUID)
+  (:import (java.util UUID)
            (java.time LocalDate LocalDateTime)
            (java.time.format DateTimeFormatter)))
 
