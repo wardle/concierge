@@ -295,11 +295,15 @@
   :args (s/cat :params ::params :system string? :value string?)
   :ret (s/coll-of map?))
 (defn resolve!
-  "Performs an EMPI fetch using the identifier as defined by `system` and `value`.
+  "Return a sequence of results of an EMPI fetch using the identifier as 
+  defined by `system` and `value`.
   For example,
   ```
   (resolve! params \"https://fhir.nhs.uk/Id/nhs-number\" \"1111111111\")
-  ```"
+  =>
+  [{:org.hl7.fhir.Patient/identifier [{...}]
+    :org.hl7.fhir/Patient/name [{...}] ...} ...]
+  ``` "
   [params system value]
   {:pre [(s/valid? ::params params)]}
   (let [result (-> (make-identifier-request system value params)
