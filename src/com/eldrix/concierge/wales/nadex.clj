@@ -63,7 +63,7 @@
     - password : password."
   [^LDAPConnectionPool pool username password]
   (with-open [c (.getConnection pool)]
-    (try (.bind c (str username "@cymru.nhs.uk") password)
+    (try (.bind c (str username "@cymru.nhs.uk") (.getBytes ^String password "UTF-8"))
          true
          (catch LDAPBindException e false))))
 
