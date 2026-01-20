@@ -16,7 +16,7 @@
 (deftest ^:live test-cav-fetch-crn
   (let [config (cav-config)
         pt1 (pms/fetch-patient-by-crn config "a999998")
-        pt2 (pms/fetch-patient-by-nnn config "1111111111")
+        pt2 (pms/fetch-patient-by-nnn config "9876543210")
         pt3 (pms/fetch-patient-by-crn config (:HOSPITAL_ID pt2))
         pt4 (pms/fetch-patient-by-crn config "A0")]
     (is (nil? pt4))
