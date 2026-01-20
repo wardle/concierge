@@ -21,7 +21,13 @@
 (s/def ::password string?)
 (s/def ::database string?)
 (s/def ::user-string string?)
-(s/def ::opts (s/keys :req-un [::username ::password ::database ::user-string]))
+(s/def ::url string?)
+(s/def ::opts (s/keys :req-un [::username ::password ::database ::user-string]
+                      :opt-un [::url]))
+
+(def ^:private default-url
+  "Default CAV PMS SOAP endpoint URL."
+  "http://cavpmswsi.cymru.nhs.uk/PMSInterfaceWebService.asmx")
 
 
 ;; (hugsql/def-db-fns "com/eldrix/concierge/wales/cav_pms.sql")
@@ -31,21 +37,51 @@
 (declare fetch-admissions-for-patient-sqlvec)
 (hugsql/def-sqlvec-fns "com/eldrix/concierge/wales/cav_pms.sql")
 
+(xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
+(xml/alias-uri :cav "http://localhost/PMSInterfaceWebService")
+
+(defn- make-getdata-soap-request
+  "Wrap an XML data block in a SOAP envelope for the GetData operation."
+  [^String xml-data-block]
+  (selmer.parser/render-file
+    (io/resource "wales/cav-getdata-soap-req.xml")
+    {:xml-data-block xml-data-block}))
+
+(defn- extract-getdata-response
+  "Extract the GetDataResult content from a SOAP response.
+   Returns the inner XML content as a string for further parsing."
+  [response-body]
+  (let [parsed (-> response-body xml/parse-str zip/xml-zip)
+        result-loc (zx/xml1-> parsed ::soap/Envelope ::soap/Body ::cav/GetDataResponse ::cav/GetDataResult)
+        content (when result-loc (first (:content (zip/node result-loc))))]
+    (when content
+      (xml/emit-str content))))
+
 (defn perform-get-data
-  "Executes a CAV 'GetData' request - as described in the XML specified."
-  [^String request-xml]
-  (client/post "http://cav-wcp02.cardiffandvale.wales.nhs.uk/PmsInterface/WebService/PMSInterfaceWebService.asmx/GetData"
-               {:form-params        {:XmlDataBlockIn request-xml}
-                :connection-timeout 1000}))
+  "Executes a CAV 'GetData' SOAP request.
+  Parameters:
+  - request-xml : the XML data block to send
+  - opts        : optional map with :url key to override default endpoint"
+  ([^String request-xml] (perform-get-data request-xml {}))
+  ([^String request-xml {:keys [url]}]
+   (let [endpoint (or url default-url)
+         soap-request (make-getdata-soap-request request-xml)
+         response (client/request {:method       :post
+                                   :url          endpoint
+                                   :content-type "text/xml; charset=\"utf-8\""
+                                   :headers      {"SOAPAction" "http://localhost/PMSInterfaceWebService/GetData"}
+                                   :body         soap-request
+                                   :connection-timeout 5000})]
+     (update response :body extract-getdata-response))))
 
 (defn do-login
   "Performs a login operation, returning an authentication token if successful.
-   Parameters: 
-     opts : a map containing username, password, database and user-string."
-  [{:keys [username password database user-string] :as opts}]
+   Parameters:
+     opts : a map containing username, password, database, user-string and optionally url."
+  [{:keys [username password database user-string url] :as opts}]
   {:pre [(s/valid? ::opts opts)]}
   (let [req-xml (selmer.parser/render-file (io/resource "wales/cav-login-req.xml") opts)
-        resp (-> (perform-get-data req-xml)
+        resp (-> (perform-get-data req-xml opts)
                  :body
                  xml/parse-str
                  zip/xml-zip)
@@ -54,7 +90,7 @@
         token (zx/xml1-> resp :response :method :row :column (zx/attr= :name "authenticationToken") (zx/attr :value))]
     (if success?
       token
-      (log/info "failed to authenticate to cav pms:" message))))
+      (log/error "failed to authenticate to cav pms:" message))))
 
 (defonce authentication-token (atom {:token nil :expires nil}))
 
@@ -150,7 +186,7 @@
   (let [req (selmer.parser/render-file (io/resource "wales/cav-sql-req.xml")
                                        {:authentication-token (get-authentication-token! opts)
                                         :sql-text             (sqlvec->query sqlvec)})
-        parsed-xml (-> (perform-get-data req)
+        parsed-xml (-> (perform-get-data req opts)
                        :body
                        xml/parse-str
                        zip/xml-zip)]
@@ -314,9 +350,6 @@
         (log/error "failed to fetch admissions for patient" crn)
         (:body results)))))
 
-(xml/alias-uri :soap "http://schemas.xmlsoap.org/soap/envelope/")
-(xml/alias-uri :cav "http://localhost/PMSInterfaceWebService")
-
 (defn- perform-receive-file-by-crn
   "Execute the SOAP action, 'receiveFileByCrn' against the CAV PMS service."
   [{:keys [url xml proxy-host proxy-port] :as req}]
@@ -373,9 +406,10 @@
    - :description - description of the document
    - :uid         - unique identifier, max 15 characters
    - :f           - file/URL/filename/InputStream/socket/bytes/string of file content
-   - :file-type   - extension of file, optional, defaults to \".pdf\"."
-  [opts]
-  (perform-receive-file-by-crn {:url "http://cav-wcp02.cardiffandvale.wales.nhs.uk/PmsInterface/WebService/PMSInterfaceWebService.asmx"
+   - :file-type   - extension of file, optional, defaults to \".pdf\"
+   - :url         - optional, endpoint URL (defaults to default-url)."
+  [{:keys [url] :as opts}]
+  (perform-receive-file-by-crn {:url (or url default-url)
                                 :xml (make-receivefilebycrn-request opts)}))
 
 
