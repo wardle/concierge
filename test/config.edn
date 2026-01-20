@@ -24,7 +24,7 @@
  :wales.nhs.cavuhb/pms
  {:username    #ref [:secrets :wales :cav :pms :username]
   :password    #ref [:secrets :wales :cav :pms :password]
-  :database    "vpmslive.world"
+  :database    "pms"
   :user-string "patientcare-concierge"}
 
  :wales.nhs.abuhb/pas
