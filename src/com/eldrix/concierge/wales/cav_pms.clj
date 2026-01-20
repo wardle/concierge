@@ -136,8 +136,9 @@
   (DateTimeFormatter/ofPattern "HH:mm"))
 
 (def ^:private ^DateTimeFormatter admission-dtf
-  "A date time formatter for admission and discharge dates."
-  (DateTimeFormatter/ofPattern "dd-MM-yyyy HH:mm:ss"))
+  "A date time formatter for admission and discharge dates.
+   Uses explicit format matching SQL to_char for consistency across databases."
+  (DateTimeFormatter/ofPattern "yyyy/MM/dd HH:mm:ss"))
 
 (defn- parse-local-date [s]
   (when-not (str/blank? s) (LocalDate/parse s df)))
