@@ -43,6 +43,17 @@
              (map #(select-keys % [:cRN :DATE_ADM :DATE_DISC :WARD :CON_ID])))))
     (is (> (count admissions) 0))))
 
+(deftest ^:live test-cav-post-document
+  (let [uid (str "test-" (System/currentTimeMillis))
+        {:keys [success? message document-id]} (pms/post-document
+                                                (merge (cav-config)
+                                                       {:crn         "A999998"
+                                                        :uid         uid
+                                                        :description "Test document from concierge"
+                                                        :f           (io/resource "dummy.pdf")}))]
+    (is success? (str "Document posting failed: " message))
+    (is (seq document-id) "Document ID should be returned")))
+
 (comment
   (def config (cav-config))
   config

@@ -408,19 +408,24 @@
    - :uid         - unique identifier, max 15 characters
    - :f           - file/URL/filename/InputStream/socket/bytes/string of file content
    - :file-type   - extension of file, optional, defaults to \".pdf\"
-   - :url         - optional, endpoint URL (defaults to default-url)."
+   - :url         - optional, endpoint URL (defaults to default-url).
+   Returns a map with keys:
+   - :success?    - true if document was accepted, false otherwise
+   - :message     - error message if failed, nil if successful
+   - :document-id - the document ID assigned by PMS if successful."
   [{:keys [url] :as opts}]
-  (perform-receive-file-by-crn {:url (or url default-url)
-                                :xml (make-receivefilebycrn-request opts)}))
+  (-> (perform-receive-file-by-crn {:url (or url default-url)
+                                    :xml (make-receivefilebycrn-request opts)})
+      parse-receive-by-crn-response))
 
 
 (comment
-  (def response (post-document {:crn         "A999998"
-                                :uid         "patientcare 004"
-                                :description "Test letter patientcare/concierge"
-                                :f           "test/resources/dummy.pdf"}))
-
-  (parse-receive-by-crn-response response)
+  ;; post-document now returns a parsed result with :success?, :message, and :document-id
+  (def result (post-document {:crn         "A999998"
+                              :uid         "patientcare 004"
+                              :description "Test letter patientcare/concierge"
+                              :f           "test/resources/dummy.pdf"}))
+  ;; => {:success? true, :message nil, :document-id "12345"}
 
   (require '[clojure.pprint :as pp])
   (def opts (:wales.nhs.cav/pms (#'com.eldrix.concierge.config/config :live)))
