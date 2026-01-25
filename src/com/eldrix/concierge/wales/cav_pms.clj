@@ -405,7 +405,9 @@
    Parameters:
    - :crn         - case record number
    - :description - description of the document
-   - :uid         - unique identifier, max 15 characters
+   - :uid         - unique identifier for the document, MUST be max 15 characters.
+                    This should be a persistent identifier from the calling system
+                    (e.g. a database primary key) to allow tracking and deduplication.
    - :f           - file/URL/filename/InputStream/socket/bytes/string of file content
    - :file-type   - extension of file, optional, defaults to \".pdf\"
    - :url         - optional, endpoint URL (defaults to default-url).

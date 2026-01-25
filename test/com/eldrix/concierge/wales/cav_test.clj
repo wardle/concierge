@@ -43,8 +43,16 @@
              (map #(select-keys % [:cRN :DATE_ADM :DATE_DISC :WARD :CON_ID])))))
     (is (> (count admissions) 0))))
 
+(defn- random-uid
+  "Generate a random UID with prefix 'pc4.' for testing.
+   Total length is 15 characters (max allowed by PMS)."
+  []
+  (let [chars "0123456789abcdefghijklmnopqrstuvwxyz"
+        suffix (apply str (repeatedly 11 #(rand-nth chars)))]
+    (str "pc4." suffix)))
+
 (deftest ^:live test-cav-post-document
-  (let [uid (str "test-" (System/currentTimeMillis))
+  (let [uid (random-uid)
         {:keys [success? message document-id]} (pms/post-document
                                                 (merge (cav-config)
                                                        {:crn         "A999998"
