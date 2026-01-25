@@ -1,8 +1,5 @@
  {:secrets #include #join [#env HOME "/.secrets.edn"]
 
- :uk.gov/notify
- {:api-key #ref [:secrets :uk.gov :notify :api-key]}
-
  :wales.nhs/empi
  {:url           "https://mpilivequeries.cymru.nhs.uk/PatientDemographicsQueryWS.asmx"
   :processing-id "P"
