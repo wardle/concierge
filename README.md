@@ -5,6 +5,17 @@
 [![Clojars Project](https://img.shields.io/clojars/v/com.eldrix/concierge.svg)](https://clojars.org/com.eldrix/concierge)
 
 Concierge is a suite of health and care integration modules, abstracting and simplifing integrations with underlying health and care systems. 
+
+
+# THIS REPOSITORY HAS BEEN ARCHIVED
+
+The functionality in concierge has been merged into my pc4 EHR monorepo. As such, no new development will take place in this repository.
+
+
+------
+
+
+
 	
 > A concierge assists guests. This concierge assists clients to integrate into the local health and care ecosystem.
 
